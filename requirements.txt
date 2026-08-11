@@ -3,6 +3,10 @@ pypdf>=5.0
 python-docx>=1.1
 python-dotenv>=1.0
 requests>=2.32
+pyotp>=2.9
+segno>=1.6
+
+# Two-factor auth (TOTP + QR codes)
 
 # Production
 gunicorn>=22.0

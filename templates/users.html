@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Users — TalentPulse ATS{% endblock %}
+{% block page_title %}Users{% endblock %}
+{% block page_sub %}Workspace accounts and role-based access{% endblock %}
+
+{% block content %}
+<div class="toolbar fade-up">
+  <form class="search-box" method="get" id="searchForm" onsubmit="return false;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input class="input" type="text" id="tableSearch" placeholder="Search name, username, email…">
+  </form>
+  <select class="select" style="width: auto;" onchange="window.location.href='{% url 'user_list' %}' + (this.value ? '?role=' + this.value + '{% if status %}&status={{ status }}{% endif %}' : '{% if status %}?status={{ status }}{% endif %}')">
+    <option value="">All roles</option>
+    <option value="admin" {% if role == 'admin' %}selected{% endif %}>Admins</option>
+    <option value="recruiter" {% if role == 'recruiter' %}selected{% endif %}>Recruiters</option>
+  </select>
+  <select class="select" style="width: auto;" onchange="window.location.href='{% url 'user_list' %}' + (this.value ? '?status=' + this.value + '{% if role %}&role={{ role }}{% endif %}' : '{% if role %}?role={{ role }}{% endif %}')">
+    <option value="">Any status</option>
+    <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+    <option value="disabled" {% if status == 'disabled' %}selected{% endif %}>Disabled</option>
+  </select>
+  <span class="badge badge-gradient">
+    <span class="dot"></span>{{ users|length }} account{{ users|length|pluralize }}
+  </span>
+  {% if role or status %}
+  <a href="{% url 'user_list' %}" class="btn btn-ghost btn-sm">Clear filters</a>
+  {% endif %}
+  <p class="muted" style="margin: 0; font-size: 13px;">Admins manage roles and account access. Recruiters run the hiring workflow.</p>
+</div>
+
+<div class="card fade-up">
+  <div class="table-wrap">
+    <table class="table" data-searchable>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Joined</th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div class="flex">
+              <div class="avatar avatar-sm {% if u.is_superuser %}avatar-tone-1{% else %}avatar-tone-4{% endif %}">{{ u.get_username|slice:":1"|upper }}</div>
+              <div>
+                <span class="cell-primary">{{ u.get_full_name|default:u.get_username }}</span>
+                <div class="cell-sub">@{{ u.get_username }}{% if u.email %} · {{ u.email }}{% endif %}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if u.is_superuser %}
+            <span class="badge badge-gradient">Admin</span>
+            {% else %}
+            <span class="badge badge-violet">Recruiter</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not u.profile.is_verified %}
+            <span class="badge badge-amber"><span class="dot"></span>Pending email</span>
+            {% elif u.is_active %}
+            <span class="badge badge-green"><span class="dot"></span>Active</span>
+            {% else %}
+            <span class="badge badge-red"><span class="dot"></span>Disabled</span>
+            {% endif %}
+          </td>
+          <td><span class="muted">{{ u.date_joined|date:"M j, Y" }}</span></td>
+          <td class="end">
+            {% if u == request.user %}
+            <span class="muted" style="font-size: 12px;">This is you</span>
+            {% else %}
+            <form method="post" action="{% url 'user_toggle_role' u.pk %}" style="display: inline-block;" {% if u.is_superuser %}onsubmit="return confirm('Demote {{ u.get_username }} to Recruiter? They will lose admin access.');"{% else %}onsubmit="return confirm('Promote {{ u.get_username }} to Admin? They will gain user-management access.');"{% endif %}>
+              {% csrf_token %}
+              {% if u.is_superuser %}
+              <button class="btn btn-ghost btn-sm" type="submit">Demote to recruiter</button>
+              {% else %}
+              <button class="btn btn-soft btn-sm" type="submit">Make admin</button>
+              {% endif %}
+            </form>
+            {% if not u.profile.is_verified %}
+            <form method="post" action="{% url 'verify_email_resend' %}" style="display: inline-block;">
+              {% csrf_token %}
+              <input type="hidden" name="email" value="{{ u.email }}">
+              <button class="btn btn-soft btn-sm" type="submit" title="Send a fresh verification link to {{ u.email }}">Resend verification</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'user_toggle_active' u.pk %}" style="display: inline-block;" {% if u.is_active %}onsubmit="return confirm('Disable {{ u.get_username }}? They will not be able to sign in until re-enabled.');"{% endif %}>
+              {% csrf_token %}
+              {% if u.is_active %}
+              <button class="btn btn-ghost btn-sm" type="submit" style="color: var(--danger);">Disable</button>
+              {% else %}
+              <button class="btn btn-soft btn-sm" type="submit">Re-enable</button>
+              {% endif %}
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5">
+            <div class="empty-state">
+              <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+              <h4>No matching accounts</h4>
+              <p>Try a different role or status filter — or clear the filters to see everyone.</p>
+              <a href="{% url 'user_list' %}" class="btn btn-primary">Show all users</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card fade-up" style="margin-top: 16px;">
+  <h4 style="margin-bottom: 10px;">How roles work</h4>
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+    <div class="insight-card">
+      <h5>👑 Admin</h5>
+      <p class="muted" style="font-size: 13px; margin: 6px 0 0;">Full access — jobs, candidates, screening, interviews, plus this user management page and the Django admin console.</p>
+    </div>
+    <div class="insight-card">
+      <h5>🎯 Recruiter</h5>
+      <p class="muted" style="font-size: 13px; margin: 6px 0 0;">Runs the entire hiring workflow. Cannot manage users or access the Django admin console.</p>
+    </div>
+    <div class="insight-card">
+      <h5>🛡️ Safety guards</h5>
+      <p class="muted" style="font-size: 13px; margin: 6px 0 0;">You can't demote or disable yourself, and role changes require confirmation — so the workspace always keeps at least one Admin.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

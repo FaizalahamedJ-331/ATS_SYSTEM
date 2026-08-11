@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Access denied — TalentPulse ATS{% endblock %}
+{% block page_title %}Access denied{% endblock %}
+{% block page_sub %}You don't have permission for this page{% endblock %}
+
+{% block content %}
+<div class="card fade-up" style="max-width: 520px; margin: 40px auto; text-align: center; padding: 44px 32px;">
+  <div class="empty-icon" style="font-size: 40px;">🔒</div>
+  <h2 style="margin: 14px 0 6px;">403 — Not your role</h2>
+  <p class="muted" style="margin: 0 auto 20px; max-width: 360px;">
+    This area is reserved for <b>Admins</b>. Your <b>{{ user.is_superuser|yesno:"Admin,Recruiter" }}</b>
+    role covers the full hiring workflow — if you need admin access, ask a workspace admin to promote you from the Users page.
+  </p>
+  <a href="{% url 'dashboard' %}" class="btn btn-primary">Back to dashboard</a>
+</div>
+{% endblock %}

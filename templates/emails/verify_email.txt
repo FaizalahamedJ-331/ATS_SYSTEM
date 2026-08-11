@@ -1,0 +1,11 @@
+Welcome to TalentPulse{% if user.first_name %}, {{ user.first_name }}{% endif %}! 🎉
+
+Your recruiter workspace is ready. Please verify your email address to
+activate your account:
+
+{{ verify_link }}
+
+This link expires in {{ expiry }}. If you didn't create a TalentPulse
+account, you can safely ignore this email.
+
+— TalentPulse Recruiting Platform

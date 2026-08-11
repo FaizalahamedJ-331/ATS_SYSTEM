@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your daily security digest — TalentPulse</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f2f8;font-family:Inter,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f8;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(23,26,43,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:28px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:44px;height:44px;background:rgba(255,255,255,0.16);border-radius:12px;text-align:center;font-size:20px;font-weight:800;color:#fff;">TP</td>
+                  <td style="padding-left:14px;color:#ffffff;font-size:18px;font-weight:800;letter-spacing:0.2px;">TalentPulse ATS</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h1 style="margin:0 0 10px;font-size:22px;color:#171a2b;">Your daily security digest{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
+              <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#4b4f66;">
+                Here's what happened to your account {{ period }}. Nothing to do
+                if it all looks like you.
+              </p>
+
+              {% if groups %}
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;border:1px solid #eceef5;border-radius:12px;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
+                      {% for label, count in groups %}
+                      <tr>
+                        <td style="padding:4px 0;font-size:13px;color:#4b4f66;">{{ label }}</td>
+                        <td style="padding:4px 0;font-size:14px;color:#171a2b;text-align:right;font-weight:700;">{{ count }}</td>
+                      </tr>
+                      {% endfor %}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              {% endif %}
+
+              {% if events %}
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 8px;">
+                {% for e in events %}
+                <tr>
+                  <td style="padding:8px 0;border-bottom:1px solid #f1f2f8;vertical-align:top;">
+                    <div style="font-size:12px;color:#8a8fa8;">{{ e.created_at|date:"M j, g:i A" }} UTC{% if e.ip %} · IP {{ e.ip }}{% endif %}</div>
+                    <div style="font-size:13.5px;color:#171a2b;font-weight:600;margin-top:2px;">{{ e.label }}{% if e.detail %} <span style="color:#4b4f66;font-weight:500;">· {{ e.detail }}</span>{% endif %}</div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% endif %}
+
+              {% if more_count %}
+              <p style="margin:8px 0 16px;font-size:13px;color:#8a8fa8;">…and {{ more_count }} more event{{ more_count|pluralize }}.</p>
+              {% endif %}
+
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 6px;">
+                <tr>
+                  <td style="border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+                    <a href="{{ log_link }}" style="display:inline-block;padding:13px 26px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;border-radius:10px;">Open security log →</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#8a8fa8;">
+                You're getting this because sign-in alerts are on for your
+                account. Turn them off any time in <b>Settings</b>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 32px;background:#fafafe;border-top:1px solid #eceef5;font-size:12px;color:#a2a6bd;">
+              © 2026 TalentPulse Recruiting Platform — screen every candidate, hire the best.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

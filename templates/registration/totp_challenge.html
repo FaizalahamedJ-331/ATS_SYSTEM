@@ -1,0 +1,99 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234f46e5'/%3E%3Cstop offset='1' stop-color='%237c3aed'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-size='26' font-weight='800' fill='white' text-anchor='middle'%3ETP%3C/text%3E%3C/svg%3E">
+  <title>Two-factor verification — TalentPulse ATS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+  <div class="login-layout">
+    <section class="login-brand-side">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="brand" style="padding: 0; position: relative; z-index: 1;">
+        <div class="brand-mark">TP</div>
+        <div class="brand-text">
+          <span class="brand-name">TalentPulse</span>
+          <span class="brand-sub">ATS Screening System</span>
+        </div>
+      </div>
+      <div style="position: relative; z-index: 1;">
+        <h1 style="font-size: 34px; line-height: 1.2; margin-bottom: 14px; max-width: 440px;">
+          Password confirmed.<br>Now prove it's you.
+        </h1>
+        <p style="color: var(--sidebar-text); font-size: 14.5px; max-width: 430px;">
+          Your account is protected with two-factor authentication. Open your
+          authenticator app and enter the 6-digit code it shows.
+        </p>
+        <div class="login-feature-list">
+          <div class="login-feature">
+            <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+            <div><b>Codes rotate</b><p>A fresh 6-digit code every 30 seconds — a stolen code is useless seconds later.</p></div>
+          </div>
+          <div class="login-feature">
+            <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.5"/></svg></div>
+            <div><b>Replay-proof</b><p>A code can only be used once — even the correct code can't be replayed within its window.</p></div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 12px; color: var(--sidebar-text); position: relative; z-index: 1;">© 2026 TalentPulse Recruiting Platform</p>
+    </section>
+
+    <section class="login-form-side">
+      <div class="login-box fade-up">
+        <div class="empty-icon" style="margin-bottom: 14px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 26px; height: 26px;"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        </div>
+        <h1>Two-factor verification</h1>
+        <p class="sub">Enter the 6-digit code from your authenticator app for <b>{{ challenge_user.get_username }}</b></p>
+
+        {% if form.errors %}
+        <div class="toast toast-error" style="margin-bottom: 16px; animation: none; box-shadow: none;">
+          <span class="toast-icon">✕</span>
+          <span>{{ form.errors.code|join:", " }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" class="form-grid" style="grid-template-columns: 1fr;" autocomplete="off">
+          {% csrf_token %}
+          <div class="field">
+            <label for="id_code">6-digit code <span class="muted" style="font-weight: 400;">or recovery code</span></label>
+            <input class="input totp-code-input" type="text" maxlength="15" name="code" id="id_code" required autofocus placeholder="••••••" value="{{ code|default:'' }}" autocomplete="one-time-code">
+          </div>
+          <label style="display: flex; align-items: flex-start; gap: 9px; margin: 14px 0 4px; cursor: pointer; user-select: none;">
+            <input type="checkbox" name="trust_device" id="id_trust_device" style="margin-top: 2px; width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer;">
+            <span style="font-size: 12.5px; line-height: 1.5; color: var(--muted, #64748b);">
+              Trust this browser for <b>30 days</b> — you'll skip this step on
+              your next sign-in from this device.
+            </span>
+          </label>
+          <button class="btn btn-primary btn-block" type="submit" style="margin-top: 8px; padding: 11px;">Verify &amp; sign in</button>
+        </form>
+
+        <p class="muted" style="font-size: 12.5px; margin-top: 14px; line-height: 1.55;">
+          Lost your authenticator app? Enter one of your
+          <b>one-time recovery codes</b> instead — each can be used only once.
+        </p>
+
+        <div class="auth-divider"><span>Not you?</span></div>
+        <a href="{% url 'login' %}" class="btn btn-ghost btn-block" style="padding: 11px;">Back to sign in</a>
+      </div>
+    </section>
+  </div>
+  <script>
+    // Accept both 6-digit TOTP codes and 11-char recovery codes (XXXXX-XXXXX).
+    document.addEventListener("DOMContentLoaded", function () {
+      var el = document.getElementById("id_code");
+      if (el) el.addEventListener("input", function () {
+        el.value = el.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 15);
+      });
+    });
+  </script>
+</body>
+</html>

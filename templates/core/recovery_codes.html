@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Recovery codes — TalentPulse ATS{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block page_sub %}Your account and security{% endblock %}
+
+{% block content %}
+<div class="fade-up" style="max-width: 620px; margin: 0 auto;">
+  <div class="card">
+    <div class="flex" style="align-items: center; gap: 12px;">
+      <div class="empty-icon" style="margin: 0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 20px; height: 20px;"><path d="M9 12l2 2 4-4"/><path d="M12 2l8 3.5v5.6c0 5-3.4 9.6-8 10.9-4.6-1.3-8-5.9-8-10.9V5.5z"/></svg>
+      </div>
+      <div>
+        <h3 style="margin: 0;">One-time recovery codes</h3>
+        <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Your backup way in if you lose your authenticator app</p>
+      </div>
+    </div>
+
+    {% if codes %}
+    <div class="toast toast-warn" style="margin: 16px 0 0; animation: none; box-shadow: none;">
+      <span class="toast-icon">⚠</span>
+      <span><b>These codes are shown only once.</b> Each works a single time — treat them like passwords and store them somewhere safe.</span>
+    </div>
+
+    <div class="recovery-code-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 16px 0;">
+      {% for code in codes %}
+      <code class="recovery-code" data-code="{{ code }}" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; letter-spacing: 1px; padding: 9px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; text-align: center;">{{ code }}</code>
+      {% endfor %}
+    </div>
+
+    <div class="flex" style="gap: 10px; flex-wrap: wrap;">
+      <button type="button" class="btn btn-primary" onclick="var t=[].map.call(document.querySelectorAll('.recovery-code'),function(e){return e.dataset.code}).join('\n'); navigator.clipboard&&navigator.clipboard.writeText(t); this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy all codes',1400);">Copy all codes</button>
+      <button type="button" class="btn btn-soft" onclick="var t=[].map.call(document.querySelectorAll('.recovery-code'),function(e){return e.dataset.code}).join('\n'); var a=document.createElement('a'); a.href='data:text/plain;charset=utf-8,'+encodeURIComponent('TalentPulse recovery codes\nGenerated '+new Date().toLocaleString()+'\n\n'+t); a.download='talentpulse-recovery-codes.txt'; a.click();">Download .txt</button>
+    </div>
+    <p class="muted" style="font-size: 12.5px; margin: 12px 0 0;">Codes are stored hashed on our side — nobody, including us, can see them again. If you lose this page, regenerate a fresh batch.</p>
+    {% else %}
+    <div class="flex" style="align-items: center; gap: 12px; margin-top: 14px;">
+      <div>
+        <span style="font-size: 13.5px; font-weight: 600;">
+          {% if remaining %}You have <b>{{ remaining }}</b> recovery code{{ remaining|pluralize }} left.{% else %}No unused recovery codes left.{% endif %}
+        </span>
+        <p class="muted" style="margin: 2px 0 0; font-size: 12.5px;">
+          {% if generated_at %}Last generated {{ generated_at|date:"M j, Y · H:i" }} UTC.{% endif %}
+          Regenerating invalidates all previous codes.
+        </p>
+      </div>
+    </div>
+    <form method="post" action="{% url 'totp_recovery_codes_regenerate' %}" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;">
+      {% csrf_token %}
+      <input class="input" type="password" name="password" required placeholder="Your password to confirm" style="flex: 1; min-width: 200px;">
+      <button class="btn btn-primary" type="submit" onclick="return confirm('Generate a new set of {{ remaining }} recovery codes? Old ones will stop working.')">Generate new codes</button>
+    </form>
+    {% endif %}
+
+    <div class="auth-divider" style="margin: 18px 0 0;"><span>Done?</span></div>
+    <div class="flex" style="gap: 10px; margin-top: 12px;">
+      <a href="{% url 'totp_setup' %}" class="btn btn-ghost">Back to 2FA settings</a>
+      <a href="{% url 'dashboard' %}" class="btn btn-soft" style="margin-left: auto;">Go to dashboard</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

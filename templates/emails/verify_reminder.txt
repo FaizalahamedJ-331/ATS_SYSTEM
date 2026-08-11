@@ -1,0 +1,11 @@
+Still waiting on you{% if user.first_name %}, {{ user.first_name }}{% endif %} 
+
+Your TalentPulse account was created a while ago, but your email still isn't
+verified — your workspace stays paused until you confirm this address:
+
+{{ verify_link }}
+
+This link expires in {{ expiry }}. If you didn't create a TalentPulse
+account, you can safely ignore this email.
+
+— TalentPulse Recruiting Platform

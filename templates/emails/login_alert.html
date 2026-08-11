@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New sign-in — TalentPulse</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f2f8;font-family:Inter,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f8;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(23,26,43,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:28px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:44px;height:44px;background:rgba(255,255,255,0.16);border-radius:12px;text-align:center;font-size:20px;font-weight:800;color:#fff;">TP</td>
+                  <td style="padding-left:14px;color:#ffffff;font-size:18px;font-weight:800;letter-spacing:0.2px;">TalentPulse ATS</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h1 style="margin:0 0 10px;font-size:22px;color:#171a2b;">New sign-in to your account{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
+              <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#4b4f66;">
+                We noticed a successful sign-in to your TalentPulse account from a
+                device that isn't on your trusted list.
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 22px;border:1px solid #eceef5;border-radius:12px;">
+                <tr>
+                  <td style="padding:14px 18px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
+                      <tr>
+                        <td style="padding:6px 0;font-size:12px;text-transform:uppercase;letter-spacing:0.6px;color:#8a8fa8;">Device</td>
+                        <td style="padding:6px 0;font-size:14px;color:#171a2b;text-align:right;font-weight:600;">{{ device }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;font-size:12px;text-transform:uppercase;letter-spacing:0.6px;color:#8a8fa8;">IP address</td>
+                        <td style="padding:6px 0;font-size:14px;color:#171a2b;text-align:right;font-weight:600;">{{ ip }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;font-size:12px;text-transform:uppercase;letter-spacing:0.6px;color:#8a8fa8;">Time</td>
+                        <td style="padding:6px 0;font-size:14px;color:#171a2b;text-align:right;font-weight:600;">{{ time|date:"F j, Y" }} at {{ time|date:"g:i A" }} UTC</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#4b4f66;">
+                Was this you? Great — nothing to do. If it <b>wasn't</b>, your
+                password may have been compromised. Change it right away:
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 6px;">
+                <tr>
+                  <td style="border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+                    <a href="{{ change_password_link }}" style="display:inline-block;padding:13px 26px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;border-radius:10px;">Change my password →</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#8a8fa8;">
+                You can manage trusted devices and this alert from
+                <b>Settings</b> in TalentPulse. If you never enabled sign-in
+                alerts, ignore this email — your account is still protected.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 32px;background:#fafafe;border-top:1px solid #eceef5;font-size:12px;color:#a2a6bd;">
+              © 2026 TalentPulse Recruiting Platform — screen every candidate, hire the best.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

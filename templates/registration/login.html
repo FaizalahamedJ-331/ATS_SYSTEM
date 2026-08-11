@@ -57,7 +57,23 @@
         <h1>Welcome back 👋</h1>
         <p class="sub">Sign in to your recruiting workspace</p>
 
-        {% if form.errors %}
+        {% if locked %}
+        <div class="toast toast-warning" style="margin-bottom: 16px; animation: none; box-shadow: none;">
+          <span class="toast-icon">⏳</span>
+          <span>Too many failed attempts — this account is temporarily locked. Try again in about {{ lockout_minutes }} minute{{ lockout_minutes|pluralize }}.</span>
+        </div>
+        {% elif unverified %}
+        <div class="toast toast-warning" style="margin-bottom: 16px; animation: none; box-shadow: none;">
+          <span class="toast-icon">!</span>
+          <span>Please verify your email first — we sent a link when you signed up.</span>
+        </div>
+        <form method="post" action="{% url 'verify_email_resend' %}" class="form-grid" style="grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 6px;">
+          {% csrf_token %}
+          {{ resend_form.email }}
+          <button class="btn btn-ghost" type="submit">Resend link</button>
+        </form>
+        <p class="muted" style="font-size: 12px; margin-bottom: 16px;">Haven't got the email? Enter your address above and we'll send a fresh link.</p>
+        {% elif form.errors %}
         <div class="toast toast-error" style="margin-bottom: 16px; animation: none; box-shadow: none;">
           <span class="toast-icon">✕</span>
           <span>Incorrect username or password. Please try again.</span>
@@ -77,6 +93,13 @@
           <input type="hidden" name="next" value="{{ next }}">
           <button class="btn btn-primary btn-block" type="submit" style="margin-top: 6px; padding: 11px;">Sign in</button>
         </form>
+
+        <p class="muted" style="font-size: 12.5px; text-align: center; margin: 10px 0 0;">
+          <a href="{% url 'password_reset' %}" style="color: var(--accent); text-decoration: none;">Forgot your password?</a>
+        </p>
+
+        <div class="auth-divider"><span>New to TalentPulse?</span></div>
+        <a href="{% url 'signup' %}" class="btn btn-soft btn-block" style="padding: 11px;">Create your account</a>
 
         <div class="demo-creds">
           <b>Demo credentials</b> — username <code>admin</code> · password <code>admin12345</code>

@@ -1,0 +1,17 @@
+New sign-in to your TalentPulse account{% if user.first_name %}, {{ user.first_name }}{% endif %}
+
+We noticed a successful sign-in to your TalentPulse account from a device
+that isn't on your trusted list.
+
+  Device:      {{ device }}
+  IP address:  {{ ip }}
+  Time:        {{ time|date:"F j, Y" }} at {{ time|date:"g:i A" }} UTC
+
+Was this you? Great - nothing to do.
+If it wasn't, your password may have been compromised. Change it now:
+{{ change_password_link }}
+
+You can manage trusted devices and this alert from Settings in TalentPulse.
+If you never enabled sign-in alerts, ignore this email.
+
+- TalentPulse Recruiting Platform

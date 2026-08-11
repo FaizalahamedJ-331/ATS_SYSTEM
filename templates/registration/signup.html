@@ -1,0 +1,152 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234f46e5'/%3E%3Cstop offset='1' stop-color='%237c3aed'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-size='26' font-weight='800' fill='white' text-anchor='middle'%3ETP%3C/text%3E%3C/svg%3E">
+  <title>Create account — TalentPulse ATS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+  <div class="login-layout">
+    <section class="login-brand-side">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="brand" style="padding: 0; position: relative; z-index: 1;">
+        <div class="brand-mark">TP</div>
+        <div class="brand-text">
+          <span class="brand-name">TalentPulse</span>
+          <span class="brand-sub">ATS Screening System</span>
+        </div>
+      </div>
+
+      <div style="position: relative; z-index: 1;">
+        <h1 style="font-size: 34px; line-height: 1.2; margin-bottom: 14px; max-width: 440px;">
+          Your workspace.<br>Ready in under a minute.
+        </h1>
+        <p style="color: var(--sidebar-text); font-size: 14.5px; max-width: 430px;">
+          Create a free recruiter account and start screening candidates with
+          the hybrid AI engine, kanban pipeline and analytics — instantly.
+        </p>
+
+        <div class="login-feature-list">
+          <div class="login-feature">
+            <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.5"/></svg></div>
+            <div><b>Hybrid AI screening</b><p>Deterministic scoring that works offline, plus optional LLM deep analysis.</p></div>
+          </div>
+          <div class="login-feature">
+            <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+            <div><b>Role-based access</b><p>Recruiters run the workflow; Admins manage users and permissions.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size: 12px; color: var(--sidebar-text); position: relative; z-index: 1;">© 2026 TalentPulse Recruiting Platform</p>
+    </section>
+
+    <section class="login-form-side">
+      <div class="login-box fade-up">
+        <h1>Create your account ✨</h1>
+        <p class="sub">Start your recruiter workspace</p>
+
+        {% if form.errors %}
+        <div class="toast toast-error" style="margin-bottom: 16px; animation: none; box-shadow: none;">
+          <span class="toast-icon">✕</span>
+          <span>Please fix the highlighted fields below.</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'signup' %}" class="form-grid" novalidate>
+          {% csrf_token %}
+          <div class="field">
+            <label for="id_first_name">First name</label>
+            <input class="input" type="text" name="first_name" id="id_first_name" value="{{ form.first_name.value|default:'' }}" required autofocus placeholder="e.g. Alex">
+            {% if form.first_name.errors %}<p class="field-error">{{ form.first_name.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div class="field">
+            <label for="id_last_name">Last name</label>
+            <input class="input" type="text" name="last_name" id="id_last_name" value="{{ form.last_name.value|default:'' }}" required placeholder="e.g. Morgan">
+            {% if form.last_name.errors %}<p class="field-error">{{ form.last_name.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div class="field">
+            <label for="id_email">Work email</label>
+            <input class="input" type="email" name="email" id="id_email" value="{{ form.email.value|default:'' }}" required placeholder="you@company.com">
+            {% if form.email.errors %}<p class="field-error">{{ form.email.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div class="field">
+            <label for="id_username">Username</label>
+            <input class="input" type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" required placeholder="Choose a username">
+            {% if form.username.errors %}<p class="field-error">{{ form.username.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div class="field">
+            <label for="id_password1">Password</label>
+            <input class="input" type="password" name="password1" id="id_password1" required autocomplete="new-password" placeholder="{{ PASSWORD_MIN_LENGTH }}+ characters" data-pw-meter data-pw-toggle="true" data-pw-min="{{ PASSWORD_MIN_LENGTH }}">
+            {% if form.password1.errors %}<p class="field-error">{{ form.password1.errors|join:", " }}</p>{% endif %}
+            <div class="pw-meter">
+              <div class="pw-bar" aria-hidden="true">
+                <span class="pw-seg"></span><span class="pw-seg"></span><span class="pw-seg"></span><span class="pw-seg"></span><span class="pw-seg"></span>
+              </div>
+              <div class="pw-label-row"><span class="pw-label"></span></div>
+              <ul class="pw-rules" aria-live="polite">
+                <li>At least {{ PASSWORD_MIN_LENGTH }} characters</li>
+                <li>Mix of 3+ types (letters, numbers, symbols)</li>
+                <li>Not just numbers</li>
+                <li>Not a common password</li>
+              </ul>
+            </div>
+          </div>
+          <div class="field">
+            <label for="id_password2">Confirm password</label>
+            <input class="input" type="password" name="password2" id="id_password2" required placeholder="Repeat password">
+            {% if form.password2.errors %}<p class="field-error">{{ form.password2.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="field" style="grid-column: 1 / -1;">
+            <label>Your role</label>
+            <div class="role-pick">
+              <label class="role-option selected">
+                <input type="radio" name="role" value="recruiter" checked>
+                <span class="role-radio"></span>
+                <span class="role-body">
+                  <span class="role-title">Recruiter</span>
+                  <span class="role-desc">Run the full hiring workflow — jobs, candidates, pipeline, screening.</span>
+                </span>
+                <span class="badge badge-violet">Available</span>
+              </label>
+              <div class="role-option disabled" title="Admin accounts are managed by workspace admins">
+                <span class="role-radio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                <span class="role-body">
+                  <span class="role-title">Admin</span>
+                  <span class="role-desc">Full access including user management.</span>
+                </span>
+                <span class="badge badge-gray">Reserved</span>
+              </div>
+            </div>
+            <p class="muted" style="font-size: 12px; margin-top: 8px;">New accounts are created as <b>Recruiters</b>. Admins promote users from the Users page.</p>
+          </div>
+
+          <p class="muted" style="grid-column: 1 / -1; font-size: 12px; margin: 0;">📬 After signing up you'll get a welcome email with a <b>verification link</b> — you'll need it for your first sign-in.</p>
+
+          <button class="btn btn-primary btn-block" type="submit" style="grid-column: 1 / -1; margin-top: 6px; padding: 11px;">Create account</button>
+        </form>
+
+        <div class="auth-divider"><span>Already have an account?</span></div>
+        <a href="{% url 'login' %}" class="btn btn-ghost btn-block" style="padding: 11px;">Sign in instead</a>
+      </div>
+    </section>
+  </div>
+
+  <script src="{% static 'js/password-meter.js' %}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var saved = null;
+      try { saved = localStorage.getItem("tp-theme"); } catch (e) {}
+      if (saved) document.documentElement.setAttribute("data-theme", saved);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Security log — TalentPulse ATS{% endblock %}
+{% block page_title %}Security log{% endblock %}
+{% block page_sub %}Recent account activity — sign-ins, 2FA and trusted devices{% endblock %}
+
+{% block content %}
+<div class="fade-up" style="max-width: 720px; margin: 0 auto;">
+  <div class="card">
+    <div class="flex" style="align-items: center; gap: 12px; margin-bottom: 6px;">
+      <div class="empty-icon" style="margin: 0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 20px; height: 20px;"><path d="M12 2l8 3.5v5.6c0 5-3.4 9.6-8 10.9-4.6-1.3-8-5.9-8-10.9V5.5z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <div>
+        <h3 style="margin: 0;">Account activity</h3>
+        <p class="muted" style="margin: 2px 0 0; font-size: 13px;">
+          {% if events %}Newest first — {% endif %}only you can see this
+        </p>
+      </div>
+      <a href="{% url 'password_change' %}" class="btn btn-soft btn-sm" style="margin-left: auto;">Back to settings</a>
+    </div>
+
+    <div class="flex" style="align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+      <span class="muted" style="font-size: 12.5px;">
+        {{ other_sessions }}{% if other_sessions_plus %}+{% endif %} other active session{{ other_sessions|pluralize }}
+      </span>
+      <form method="post" action="{% url 'sign_out_other_sessions' %}" style="margin-left: auto;">
+        {% csrf_token %}
+        <button class="btn btn-ghost btn-sm" type="submit" style="color: var(--danger); border-color: rgba(220,38,38,.35);" onclick="return confirm('Sign out every other device? You stay signed in here.')">Sign out other sessions</button>
+      </form>
+    </div>
+
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
+      {% for slug, label in filters %}
+      <a href="{% url 'security_log' %}?filter={{ slug }}" class="chip {% if slug == active_filter %}chip-active{% endif %}" style="text-decoration: none;">{{ label }}</a>
+      {% endfor %}
+    </div>
+
+    {% if events %}
+    <ul style="list-style: none; margin: 16px 0 0; padding: 0;">
+      {% for e in events %}
+      <li style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--border, #eef1f6);">
+        <div style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--bg-soft, #f1f5f9); font-size: 15px;">
+          {% if e.event == "login" %}🔑
+          {% elif e.event == "2fa_login" %}🔐
+          {% elif e.event == "2fa_enabled" %}✅
+          {% elif e.event == "2fa_disabled" %}⛔
+          {% elif e.event == "device_trusted" %}💻
+          {% elif e.event == "device_revoked" %}🚫
+          {% elif e.event == "devices_revoked_all" %}🧹
+          {% elif e.event == "recovery_codes_generated" or e.event == "recovery_codes_regenerated" %}🎟️
+          {% elif e.event == "password_changed" %}🔒
+          {% elif e.event == "alerts_toggled" %}🔔
+          {% elif e.event == "sessions_signed_out" %}🚪
+          {% else %}•{% endif %}
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13.5px; font-weight: 600;">
+            {{ e.label }}
+            {% if e.detail %}<span class="muted" style="font-weight: 500;">· {{ e.detail }}</span>{% endif %}
+          </div>
+          <div class="muted" style="font-size: 12px; margin-top: 2px;">
+            {{ e.created_at|date:"M j, Y · H:i" }}
+            {% if e.ip_address %} · IP {{ e.ip_address }}{% endif %}
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if truncated %}
+    <p class="muted" style="font-size: 12px; margin: 12px 0 0;">Showing the latest 100 events.</p>
+    {% endif %}
+    {% else %}
+    <div style="text-align: center; padding: 36px 0 20px;">
+      <div style="font-size: 34px; margin-bottom: 10px;">🛡️</div>
+      <p style="margin: 0; font-size: 14px; color: var(--muted, #64748b);">
+        {% if active_filter == "all" %}
+        No security events yet — this is where your sign-ins, 2FA changes and
+        trusted-device activity will appear.
+        {% else %}
+        No {{ active_label }} events yet — try a different filter or
+        <a href="{% url 'security_log' %}" style="color: var(--primary);">show all</a>.
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Two-factor authentication — TalentPulse ATS{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block page_sub %}Your account and security{% endblock %}
+
+{% block content %}
+<div class="fade-up" style="max-width: 620px; margin: 0 auto;">
+
+{% if enabled %}
+  <div class="card">
+    <div class="flex" style="align-items: center; gap: 12px;">
+      <div class="empty-icon" style="margin: 0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 20px; height: 20px;"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      </div>
+      <div>
+        <h3 style="margin: 0;">Two-factor authentication</h3>
+        <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Protected with an authenticator app</p>
+      </div>
+      <span class="badge badge-green" style="margin-left: auto;"><span class="dot"></span>Enabled</span>
+    </div>
+
+    <p class="muted" style="font-size: 13.5px; margin: 16px 0 0; line-height: 1.6;">
+      Every sign-in now requires your password <b>and</b> a 6-digit code from
+      your authenticator app. {% if user.profile.totp_verified_at %}Last verified
+      {{ user.profile.totp_verified_at|date:"M j, Y · H:i" }} UTC.{% endif %}
+    </p>
+
+    <div class="auth-divider" style="margin: 18px 0;"><span>Recovery codes</span></div>
+    <div class="flex" style="align-items: center; gap: 10px;">
+      <div style="flex: 1;">
+        <span style="font-size: 13.5px; font-weight: 600;">
+          {% if user.profile.recovery_codes %}{{ user.profile.recovery_codes|length }} unused recovery code{{ user.profile.recovery_codes|length|pluralize }}{% else %}No unused recovery codes{% endif %}
+        </span>
+        <p class="muted" style="margin: 0; font-size: 12px;">Single-use backup codes that let you in if you lose your authenticator app.</p>
+      </div>
+      <a href="{% url 'totp_recovery_codes' %}" class="btn btn-soft btn-sm">View / regenerate</a>
+    </div>
+
+    <div class="auth-divider" style="margin: 18px 0;"><span>Trusted devices</span></div>
+    <p class="muted" style="font-size: 12.5px; margin: 0 0 10px; line-height: 1.55;">
+      Browsers you chose to trust during 2FA verification skip the code step
+      for 30 days (they stay trusted even after you sign out). A stolen or
+      shared computer should be removed here.
+    </p>
+
+    {% if trusted_devices %}
+    <ul style="list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 8px;">
+      {% for device in trusted_devices %}
+      <li style="display: flex; align-items: center; gap: 12px; background: var(--bg-soft, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 10px 12px;">
+        <div class="empty-icon" style="margin: 0; width: 34px; height: 34px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 17px; height: 17px;"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 9h20"/></svg>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13.5px; font-weight: 600;">{{ device.label }}</div>
+          <div class="muted" style="font-size: 12px; margin-top: 1px;">
+            Trusted {{ device.created_at|date:"M j" }} · expires {{ device.expires_at|date:"M j, Y" }}
+            {% if device.ip_address %} · {{ device.ip_address }}{% endif %}
+          </div>
+        </div>
+        <form method="post" action="{% url 'totp_trust_revoke' device.pk %}">
+          {% csrf_token %}
+          <button class="btn btn-ghost btn-sm" type="submit" style="color: var(--danger); border-color: rgba(220,38,38,.35);">Forget</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    <form method="post" action="{% url 'totp_trust_revoke_all' %}" style="display: inline-block;">
+      {% csrf_token %}
+      <button class="btn btn-soft btn-sm" type="submit" onclick="return confirm('Require 2FA on every browser from now on?')">Forget all devices</button>
+    </form>
+    {% else %}
+    <p class="muted" style="font-size: 13px; margin: 0 0 4px;">No trusted devices — 2FA is required on every sign-in.</p>
+    {% endif %}
+
+    <div class="auth-divider" style="margin: 18px 0;"><span>Disable two-factor</span></div>
+    <p class="muted" style="font-size: 12.5px; margin: 0 0 10px;">
+      Disabling lowers your account security. Confirm your password to continue.
+    </p>
+    <form method="post" action="{% url 'totp_disable' %}" style="display: flex; gap: 10px; flex-wrap: wrap;">
+      {% csrf_token %}
+      <input class="input" type="password" name="password" required placeholder="Your password" style="flex: 1; min-width: 180px;">
+      <button class="btn btn-ghost" type="submit" style="color: var(--danger); border-color: rgba(220,38,38,.35);" onclick="return confirm('Turn off two-factor authentication for your account?')">Turn off 2FA</button>
+    </form>
+  </div>
+{% else %}
+  <div class="card">
+    <div class="flex" style="align-items: center; gap: 12px;">
+      <div class="empty-icon" style="margin: 0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 20px; height: 20px;"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      </div>
+      <div>
+        <h3 style="margin: 0;">Set up two-factor authentication</h3>
+        <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Add a second layer of protection to your account</p>
+      </div>
+    </div>
+
+    {% if error %}
+    <div class="toast toast-error" style="margin: 14px 0 0; animation: none; box-shadow: none;">
+      <span class="toast-icon">✕</span>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <div class="grid" style="grid-template-columns: 200px 1fr; gap: 20px; margin-top: 18px;">
+      <div>
+        <div style="background: #fff; border-radius: 12px; padding: 8px; display: inline-block; box-shadow: 0 4px 14px rgba(15,23,42,.08);">
+          <img src="{{ qr_svg }}" alt="QR code to scan with your authenticator app" width="184" height="184" style="display: block;">
+        </div>
+        <p class="muted" style="font-size: 11.5px; margin: 8px 0 0;">Scan with your authenticator app</p>
+      </div>
+      <div>
+        <ol class="pw-rules" style="list-style: decimal; padding-left: 18px; display: block;">
+          <li>Install an authenticator app (Google Authenticator, Authy, 1Password, …).</li>
+          <li>Scan the QR code, or enter the secret manually below.</li>
+          <li>Enter the 6-digit code the app shows to confirm.</li>
+        </ol>
+        <div class="field" style="margin-top: 14px;">
+          <label for="id_secret">Manual setup secret</label>
+          <div style="display: flex; gap: 8px;">
+            <input class="input" type="text" id="id_secret" value="{{ secret }}" readonly style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 2px; font-size: 13px;">
+            <button type="button" class="btn btn-soft btn-sm" onclick="navigator.clipboard && navigator.clipboard.writeText(this.previousElementSibling.value); this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy',1200);" style="white-space: nowrap;">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form method="post" class="form-grid" style="grid-template-columns: 1fr; margin-top: 16px;" autocomplete="off">
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_code">Verification code from your app</label>
+        <input class="input totp-code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" name="code" id="id_code" required placeholder="••••••" autocomplete="one-time-code" style="max-width: 220px;">
+      </div>
+      <button class="btn btn-primary" type="submit" style="max-width: 220px;">Confirm &amp; enable 2FA</button>
+    </form>
+
+    <p class="muted" style="font-size: 12.5px; margin: 14px 0 0; line-height: 1.6;">
+      🔐 Once enabled, every sign-in will ask for a fresh code from your app.
+      Keep a backup of the secret in your password manager — if you lose the
+      app, you'll need it to get back in.
+    </p>
+  </div>
+{% endif %}
+</div>
+{% endblock %}

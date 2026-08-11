@@ -373,6 +373,7 @@ class Command(BaseCommand):
             self.stdout.write("Flushed existing recruitment data.")
 
         self._superuser()
+        self._recruiter()
         jobs = self._jobs()
         candidates = self._candidates()
         self._applications(jobs, candidates)
@@ -386,6 +387,26 @@ class Command(BaseCommand):
         if not User.objects.filter(username="admin").exists():
             User.objects.create_superuser("admin", "admin@ats.local", "admin12345")
             self.stdout.write("Created superuser: admin / admin12345")
+
+    def _recruiter(self):
+        """A plain (non-superuser) account so the Recruiter role can be demoed."""
+        user, created = User.objects.get_or_create(
+            username="recruiter",
+            defaults={
+                "email": "recruiter@ats.local",
+                "first_name": "Demo",
+                "last_name": "Recruiter",
+            },
+        )
+        if created:
+            user.set_password("recruiter12345")
+            user.save()
+        # Demo accounts skip email verification so they can log in directly,
+        # even if the account already existed from an earlier seed.
+        user.profile.email_verified = True
+        user.profile.save(update_fields=["email_verified", "updated_at"])
+        if created:
+            self.stdout.write("Created recruiter: recruiter / recruiter12345")
 
     def _jobs(self):
         created = []

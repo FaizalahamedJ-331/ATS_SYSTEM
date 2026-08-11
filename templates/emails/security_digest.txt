@@ -1,0 +1,18 @@
+Your daily TalentPulse security digest{% if user.first_name %}, {{ user.first_name }}{% endif %}
+
+Here's what happened to your account {{ period }}. Nothing to do if it all
+looks like you.
+
+{% if groups %}Summary:
+{% for label, count in groups %}  {{ label }}: {{ count }}
+{% endfor %}
+{% endif %}
+{% for e in events %}  {{ e.created_at|date:"M j, g:i A" }} UTC{% if e.ip %} (IP {{ e.ip }}){% endif %} - {{ e.label }}{% if e.detail %} ({{ e.detail }}){% endif %}
+{% endfor %}{% if more_count %}  ...and {{ more_count }} more event{{ more_count|pluralize }}.
+{% endif %}
+See the full log: {{ log_link }}
+
+You're getting this because sign-in alerts are on for your account. Turn
+them off any time in Settings.
+
+- TalentPulse Recruiting Platform
