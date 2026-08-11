@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Interviews — TalentPulse ATS{% endblock %}
+{% block page_title %}Interview schedule{% endblock %}
+{% block page_sub %}Plan, track and capture feedback on candidate interviews{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" data-modal-open="scheduleModal">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+  Schedule interview
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Schedule modal -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Schedule an interview</h3>
+      <button class="icon-btn" data-modal-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <form method="post" action="{% url 'interview_schedule' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid" style="grid-template-columns: 1fr;">
+          <div class="field">
+            <label for="application_id">Candidate / position</label>
+            <select class="select" name="application_id" id="application_id" required>
+              {% for app in schedule_candidates %}
+              <option value="{{ app.pk }}">{{ app.candidate.full_name }} — {{ app.job.title }}</option>
+              {% empty %}
+              <option value="" disabled>No candidates in screening/interview stage</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="scheduled_at">Date &amp; time</label>
+            <input class="input" type="datetime-local" name="scheduled_at" id="scheduled_at" required>
+          </div>
+          <div class="field">
+            <label for="interview_type">Type</label>
+            <select class="select" name="interview_type" id="interview_type">
+              {% for key, label in interview_types %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="grid-2" style="gap: 14px; grid-template-columns: 1fr 1fr;">
+            <div class="field">
+              <label for="duration_minutes">Duration (min)</label>
+              <input class="input" type="number" name="duration_minutes" id="duration_minutes" value="45" min="15" step="15">
+            </div>
+            <div class="field">
+              <label for="interviewer">Interviewer</label>
+              <input class="input" type="text" name="interviewer" id="interviewer" placeholder="e.g. Sarah Chen">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Schedule</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Upcoming -->
+<div class="card fade-up">
+  <div class="card-header between">
+    <div><h3>Upcoming interviews</h3><span class="muted">Next scheduled sessions</span></div>
+    <span class="badge badge-blue">{{ upcoming|length }} scheduled</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table" data-searchable>
+      <thead>
+        <tr><th>Candidate</th><th>Position</th><th>Type</th><th>When</th><th>Interviewer</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for interview in upcoming %}
+        <tr>
+          <td>
+            <div class="flex">
+              <div class="avatar avatar-sm avatar-tone-{{ forloop.counter }}">{{ interview.candidate.initials }}</div>
+              <div>
+                <a href="{% url 'candidate_detail' interview.application.candidate.pk %}" class="cell-primary">{{ interview.candidate.full_name }}</a>
+                <div class="cell-sub">{{ interview.application.candidate.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td><a href="{% url 'job_detail' interview.application.job.pk %}">{{ interview.application.job.title }}</a></td>
+          <td><span class="badge badge-violet">{{ interview.get_interview_type_display }}</span></td>
+          <td>
+            <span class="cell-primary" style="font-weight: 600;">{{ interview.scheduled_at|date:"M d, Y" }}</span>
+            <div class="cell-sub">{{ interview.scheduled_at|date:"H:i" }} · {{ interview.duration_minutes }} min · in {{ interview.scheduled_at|timeuntil }}</div>
+          </td>
+          <td>{{ interview.interviewer|default:"—" }}</td>
+          <td class="end">
+            <div class="flex gap-sm">
+              <button class="btn btn-soft btn-sm" data-modal-open="feedbackModal-{{ interview.pk }}">Complete</button>
+              <form method="post" action="{% url 'interview_cancel' interview.pk %}">
+                {% csrf_token %}
+                <button class="btn btn-danger btn-sm" type="submit">Cancel</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state"><p>No upcoming interviews. Schedule one with the button above.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Feedback modals -->
+{% for interview in upcoming %}
+<div class="modal-overlay" id="feedbackModal-{{ interview.pk }}">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Complete interview — {{ interview.candidate.full_name }}</h3>
+      <button class="icon-btn" data-modal-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <form method="post" action="{% url 'interview_complete' interview.pk %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="field" style="margin-bottom: 16px;">
+          <label>Rating</label>
+          <div class="flex" style="font-size: 24px;" id="rating-{{ interview.pk }}">
+            {% for i in "12345" %}<button type="button" class="rate-star" data-rating="{{ forloop.counter }}" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--border-strong);">★</button>{% endfor %}
+          </div>
+          <input type="hidden" name="rating" id="rating-input-{{ interview.pk }}">
+        </div>
+        <div class="field">
+          <label for="feedback-{{ interview.pk }}">Feedback</label>
+          <textarea class="textarea" name="feedback" id="feedback-{{ interview.pk }}" rows="4" placeholder="Technical depth, communication, culture fit…"></textarea>
+        </div>
+        <p class="help" style="margin-top: 8px;">A rating of 4+ automatically moves the candidate to the Offer stage.</p>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-success">Save &amp; complete</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Past -->
+<div class="card mt-4 fade-up-1">
+  <div class="card-header"><div><h3>Past interviews</h3><span class="muted">Completed &amp; cancelled sessions</span></div></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Candidate</th><th>Position</th><th>Type</th><th>Date</th><th>Status</th><th>Rating</th><th>Feedback</th></tr>
+      </thead>
+      <tbody>
+        {% for interview in past %}
+        <tr>
+          <td>
+            <div class="flex">
+              <div class="avatar avatar-sm avatar-tone-{{ forloop.counter }}">{{ interview.candidate.initials }}</div>
+              <div>
+                <a href="{% url 'candidate_detail' interview.application.candidate.pk %}" class="cell-primary">{{ interview.candidate.full_name }}</a>
+                <div class="cell-sub">{{ interview.application.job.title }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ interview.get_interview_type_display }}</td>
+          <td class="muted">{{ interview.scheduled_at|date:"M d, Y" }}</td>
+          <td><span class="badge {% if interview.status == 'completed' %}badge-green{% else %}badge-red{% endif %}">{{ interview.get_status_display }}</span></td>
+          <td>
+            {% if interview.rating %}{% for i in "12345" %}{% if forloop.counter <= interview.rating %}⭐{% endif %}{% endfor %}
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td style="max-width: 280px;"><span class="muted small">{{ interview.feedback|default:"—"|truncatechars:90 }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state"><p>No past interviews yet.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("[id^='rating-']").forEach(function (box) {
+      var stars = box.querySelectorAll(".rate-star");
+      var input = document.getElementById("rating-input-" + box.id.split("-")[1]);
+      stars.forEach(function (star) {
+        star.addEventListener("click", function () {
+          var value = parseInt(star.getAttribute("data-rating"), 10);
+          stars.forEach(function (s) {
+            s.style.color = parseInt(s.getAttribute("data-rating"), 10) <= value ? "#f59e0b" : "var(--border-strong)";
+          });
+          if (input) input.value = value;
+        });
+      });
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,10 @@
+Django>=6.0
+pypdf>=5.0
+python-docx>=1.1
+python-dotenv>=1.0
+requests>=2.32
+
+# Production
+gunicorn>=22.0
+whitenoise>=6.7
+psycopg[binary]>=3.2

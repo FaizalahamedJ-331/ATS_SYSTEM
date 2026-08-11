@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Screening report — TalentPulse ATS{% endblock %}
+{% block page_title %}Screening report{% endblock %}
+{% block page_sub %}{{ app.candidate.full_name }} vs. {{ app.job.title }}{% endblock %}
+
+{% block topbar_actions %}
+<form method="post" action="{% url 'screening_rerun' app.pk %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-ghost">Re-run screening</button>
+</form>
+<form method="post" action="{% url 'screening_ai' result.pk %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
+    AI deep analysis
+  </button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="grid-2-1">
+  <div>
+    <!-- Score overview -->
+    <div class="card fade-up">
+      <div class="card-body" style="display: flex; align-items: center; gap: 26px; flex-wrap: wrap;">
+        <div style="position: relative; width: 130px; height: 130px;">
+          <div class="score-ring" style="--p: {{ result.ats_score|floatformat:0 }}; --ring-color: {% if result.ats_score >= 85 %}var(--success){% elif result.ats_score >= 70 %}var(--info){% else %}var(--warning){% endif %}; width: 130px; height: 130px; font-size: 34px;">
+            <span>{{ result.ats_score|floatformat:0 }}</span>
+          </div>
+          <div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 2px 10px; font-size: 11px; font-weight: 600; color: var(--text-3); white-space: nowrap;">out of 100</div>
+        </div>
+        <div style="flex: 1; min-width: 220px;">
+          <div class="flex wrap gap-sm" style="margin-bottom: 10px;">
+            <span class="badge {% if result.verdict == 'strong_match' %}badge-green{% elif result.verdict == 'good_match' %}badge-cyan{% elif result.verdict == 'possible_match' %}badge-amber{% else %}badge-red{% endif %}" style="font-size: 13px; padding: 6px 14px;">{{ result.get_verdict_display }}</span>
+            <span class="badge {% if result.stage == 'ai_enhanced' %}badge-gradient{% else %}badge-gray{% endif %}" style="font-size: 13px; padding: 6px 14px;">
+              {% if result.stage == 'ai_enhanced' %}✦ AI-enhanced screening{% else %}Rule-based screening{% endif %}
+            </span>
+          </div>
+          <p class="muted" style="font-size: 13px;">
+            Hybrid engine weighing skills, keyword coverage, experience fit and education against the job requirements.
+          </p>
+          <div class="flex gap-md mt-4" style="flex-wrap: wrap;">
+            <a href="{% url 'candidate_detail' app.candidate.pk %}" class="btn btn-ghost btn-sm">Candidate profile</a>
+            <a href="{% url 'job_detail' app.job.pk %}" class="btn btn-ghost btn-sm">Job detail</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Breakdown -->
+    <div class="card fade-up-1" style="margin-top: 20px;">
+      <div class="card-header"><div><h3>Score breakdown</h3><span class="muted">Component performance</span></div></div>
+      <div class="card-body">
+        <div class="breakdown-row"><span class="label">Skills</span><div class="progress indigo"><div style="width: {{ result.skill_score|floatformat:0 }}%"></div></div><span class="val">{{ result.skill_score|floatformat:0 }}</span></div>
+        <div class="breakdown-row"><span class="label">Keywords</span><div class="progress indigo"><div style="width: {{ result.keyword_score|floatformat:0 }}%"></div></div><span class="val">{{ result.keyword_score|floatformat:0 }}</span></div>
+        <div class="breakdown-row"><span class="label">Experience</span><div class="progress green"><div style="width: {{ result.experience_score|floatformat:0 }}%"></div></div><span class="val">{{ result.experience_score|floatformat:0 }}</span></div>
+        <div class="breakdown-row"><span class="label">Education</span><div class="progress amber"><div style="width: {{ result.education_score|floatformat:0 }}%"></div></div><span class="val">{{ result.education_score|floatformat:0 }}</span></div>
+      </div>
+    </div>
+
+    <!-- Strengths & concerns -->
+    <div class="grid-2 fade-up-2" style="margin-top: 20px;">
+      <div class="card">
+        <div class="card-header"><div><h3 style="color: var(--success);">✓ Strengths</h3></div></div>
+        <div class="card-body">
+          <ul class="list-check">
+            {% for s in result.strengths %}<li><span class="ic ic-good">✓</span>{{ s }}</li>{% empty %}
+            <li><span class="ic ic-info">i</span>No strengths recorded.</li>{% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div><h3 style="color: var(--danger);">✕ Concerns</h3></div></div>
+        <div class="card-body">
+          <ul class="list-check">
+            {% for c in result.concerns %}<li><span class="ic ic-bad">✕</span>{{ c }}</li>{% empty %}
+            <li><span class="ic ic-good">✓</span>No concerns.</li>{% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <!-- AI analysis -->
+    <div class="card fade-up-1">
+      <div class="card-header between">
+        <div><h3>✦ AI analysis</h3><span class="muted">LLM deep read of the resume</span></div>
+        {% if result.stage == 'ai_enhanced' %}<span class="badge badge-gradient">active</span>{% endif %}
+      </div>
+      <div class="card-body">
+        {% if result.ai_analysis %}
+        <p style="color: var(--text-2); font-size: 13.5px; line-height: 1.7;">{{ result.ai_analysis }}</p>
+        <div class="divider"></div>
+        <div class="kv-list">
+          <div class="kv-row"><span class="k">AI verdict</span><span class="v"><span class="badge {% if result.ai_verdict == 'strong_match' %}badge-green{% elif result.ai_verdict == 'good_match' %}badge-cyan{% elif result.ai_verdict == 'possible_match' %}badge-amber{% else %}badge-red{% endif %}">{{ result.get_ai_verdict_display }}</span></span></div>
+          <div class="kv-row"><span class="k">Score adjustment</span><span class="v" style="color: {% if result.ai_score_adjustment >= 0 %}var(--success){% else %}var(--danger){% endif %};">{{ result.ai_score_adjustment|stringformat:"+d" }} points</span></div>
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding: 26px 10px;">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></div>
+          <h4>No AI analysis yet</h4>
+          <p>Run the AI deep analysis to get a narrative assessment on top of the rule-based score.</p>
+          <form method="post" action="{% url 'screening_ai' result.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Run AI deep analysis</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Skills match -->
+    <div class="card fade-up-2" style="margin-top: 20px;">
+      <div class="card-header"><div><h3>Skill match</h3><span class="muted">Required vs. found on resume</span></div></div>
+      <div class="card-body">
+        {% if result.matched_skills or result.missing_skills %}
+        <div class="section-title" style="margin-top: 0;">Matched ({{ result.matched_skills|length }})</div>
+        <div class="skill-cloud" style="margin-bottom: 14px;">
+          {% for s in result.matched_skills %}<span class="chip chip-match">✓ {{ s }}</span>{% empty %}<span class="muted">None</span>{% endfor %}
+        </div>
+        <div class="section-title">Missing ({{ result.missing_skills|length }})</div>
+        <div class="skill-cloud">
+          {% for s in result.missing_skills %}<span class="chip chip-miss">✕ {{ s }}</span>{% empty %}<span class="muted">Nothing missing 🎉</span>{% endfor %}
+        </div>
+        {% if result.matched_nice_to_have %}
+        <div class="section-title">Bonus — nice-to-have</div>
+        <div class="skill-cloud">{% for s in result.matched_nice_to_have %}<span class="chip chip-soft">{{ s }}</span>{% endfor %}</div>
+        {% endif %}
+        {% else %}
+        <span class="muted">No required skills defined for this job.</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Resume text -->
+<div class="card mt-4 fade-up-2">
+  <div class="card-header"><div><h3>Resume text analyzed</h3><span class="muted">Source used by the screening engine</span></div></div>
+  <div class="card-body">
+    {% if resume_text %}
+    <div class="resume-preview">{{ resume_text|truncatechars:6000 }}</div>
+    {% else %}
+    <div class="empty-state"><p>No resume attached for this application.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

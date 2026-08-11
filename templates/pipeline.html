@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load ats_tags %}
+{% block title %}Pipeline — TalentPulse ATS{% endblock %}
+{% block page_title %}Candidate pipeline{% endblock %}
+{% block page_sub %}Drag cards between stages to update applications{% endblock %}
+
+{% block topbar_actions %}
+<select class="select" style="width: auto;" onchange="window.location.href='{% url 'pipeline' %}' + (this.value ? '?job=' + this.value : '')">
+  <option value="">All jobs</option>
+  {% for job_id, job_title in jobs %}
+  <option value="{{ job_id }}" {% if job_id|stringformat:"s" == request.GET.job %}selected{% endif %}>{{ job_title }}</option>
+  {% endfor %}
+</select>
+{% endblock %}
+
+{% block content %}
+<div class="kanban fade-up">
+  {% for status in statuses %}
+  <div class="kanban-col">
+    <div class="kanban-col-head">
+      <span class="dot" style="width: 8px; height: 8px; border-radius: 50%; background:
+        {% if status.value == 'new' %}var(--info){% elif status.value == 'screening' %}var(--warning){% elif status.value == 'interview' %}var(--accent){% elif status.value == 'offer' %}#06b6d4{% elif status.value == 'hired' %}var(--success){% else %}var(--danger){% endif %};"></span>
+      {{ status.label }}
+      <span class="count">{{ columns|length }}</span>
+    </div>
+    <div class="kanban-cards" data-status="{{ status.value }}">
+      {% for app in columns|get_item:status.value %}
+      <div class="kanban-card" draggable="true" data-app-id="{{ app.pk }}">
+        <div class="kc-top">
+          <div class="avatar avatar-sm avatar-tone-{{ forloop.counter }}">{{ app.candidate.initials }}</div>
+          <div style="min-width: 0;">
+            <div class="kc-name">{{ app.candidate.full_name }}</div>
+            <div style="font-size: 11px; color: var(--text-3);">{{ app.candidate.years_experience|floatformat:0 }} yrs exp</div>
+          </div>
+        </div>
+        <div class="kc-job">{{ app.job.title }}</div>
+        <div class="kc-foot">
+          {% if app.score is not None %}
+          <span class="kc-score" style="color: {% if app.score >= 85 %}var(--success){% elif app.score >= 70 %}var(--info){% else %}var(--warning){% endif %};">ATS {{ app.score|floatformat:0 }}</span>
+          {% else %}<span class="kc-score na">not screened</span>{% endif %}
+          <a href="{% url 'candidate_detail' app.candidate.pk %}" class="chip" style="font-size: 11px;">View →</a>
+        </div>
+      </div>
+      {% empty %}
+      <div style="text-align: center; padding: 22px 8px; font-size: 12px; color: var(--text-3); border: 1.5px dashed var(--border); border-radius: 10px;">
+        Drop candidates here
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

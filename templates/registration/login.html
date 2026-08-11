@@ -1,0 +1,92 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — TalentPulse ATS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+  <div class="login-layout">
+    <section class="login-brand-side">
+      <div class="brand" style="padding: 0; position: relative; z-index: 1;">
+        <div class="brand-mark">TP</div>
+        <div class="brand-text">
+          <span class="brand-name">TalentPulse</span>
+          <span class="brand-sub">ATS Screening System</span>
+        </div>
+      </div>
+
+      <div style="position: relative; z-index: 1;">
+        <h1 style="font-size: 34px; line-height: 1.2; margin-bottom: 14px; max-width: 440px;">
+          Screen every candidate.<br>Hire the best ones faster.
+        </h1>
+        <p style="color: var(--sidebar-text); font-size: 14.5px; max-width: 430px;">
+          An enterprise-grade applicant tracking system with hybrid AI screening —
+          resume parsing, ATS scoring, kanban pipeline, interviews and analytics.
+        </p>
+
+        <div class="login-feature-list">
+          <div class="login-feature">
+            <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"/><path d="M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/><path d="M9 12h6"/></svg></div>
+            <div><b>Resume parsing</b><p>PDF, DOCX & TXT — skills, experience and contact info extracted automatically.</p></div>
+          </div>
+          <div class="login-feature">
+            <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.5"/></svg></div>
+            <div><b>Hybrid AI screening</b><p>Deterministic rule-based scoring, plus optional LLM deep analysis.</p></div>
+          </div>
+          <div class="login-feature">
+            <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+            <div><b>Data-driven decisions</b><p>Ranked shortlists, pipeline analytics and hiring insights in one place.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size: 12px; color: var(--sidebar-text); position: relative; z-index: 1;">© 2026 TalentPulse Recruiting Platform</p>
+    </section>
+
+    <section class="login-form-side">
+      <div class="login-box fade-up">
+        <h1>Welcome back 👋</h1>
+        <p class="sub">Sign in to your recruiting workspace</p>
+
+        {% if form.errors %}
+        <div class="toast toast-error" style="margin-bottom: 16px; animation: none; box-shadow: none;">
+          <span class="toast-icon">✕</span>
+          <span>Incorrect username or password. Please try again.</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'login' %}" class="form-grid" style="grid-template-columns: 1fr;">
+          {% csrf_token %}
+          <div class="field">
+            <label for="id_username">Username</label>
+            <input class="input" type="text" name="username" id="id_username" autofocus required placeholder="admin">
+          </div>
+          <div class="field">
+            <label for="id_password">Password</label>
+            <input class="input" type="password" name="password" id="id_password" required placeholder="••••••••">
+          </div>
+          <input type="hidden" name="next" value="{{ next }}">
+          <button class="btn btn-primary btn-block" type="submit" style="margin-top: 6px; padding: 11px;">Sign in</button>
+        </form>
+
+        <div class="demo-creds">
+          <b>Demo credentials</b> — username <code>admin</code> · password <code>admin12345</code>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var saved = null;
+      try { saved = localStorage.getItem("tp-theme"); } catch (e) {}
+      if (saved) document.documentElement.setAttribute("data-theme", saved);
+    });
+  </script>
+</body>
+</html>

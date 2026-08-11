@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}{{ candidate.full_name }} — TalentPulse ATS{% endblock %}
+{% block page_title %}{{ candidate.full_name }}{% endblock %}
+{% block page_sub %}{{ candidate.headline|default:"Candidate" }}{% if candidate.current_company %} · {{ candidate.current_company }}{% endif %}{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-ghost" data-modal-open="resumeModal">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+  Upload resume
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Resume upload modal -->
+<div class="modal-overlay" id="resumeModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Upload &amp; parse resume</h3>
+      <button class="icon-btn" data-modal-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <form method="post" action="{% url 'candidate_upload_resume' candidate.pk %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="file-drop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 30px; height: 30px; margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+          <div><span class="file-name">Drop a PDF, DOCX or TXT file here</span></div>
+          <input type="file" name="resume_file" accept=".pdf,.docx,.txt,.md">
+        </div>
+        <p class="help" style="margin-top: 10px;">Skills, contact details and experience are extracted automatically and merged into this profile.</p>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Parse resume</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="grid-2-1">
+  <div>
+    <!-- Profile card -->
+    <div class="card fade-up">
+      <div class="card-body">
+        <div class="flex" style="align-items: flex-start;">
+          <div class="avatar avatar-lg avatar-tone-{{ candidate.pk|stringformat:'s'|slice:':1' }}">{{ candidate.initials }}</div>
+          <div style="flex: 1;">
+            <div class="flex wrap between">
+              <div>
+                <h2 style="font-size: 21px;">{{ candidate.full_name }}</h2>
+                <div class="muted" style="margin-top: 2px;">
+                  {{ candidate.headline|default:"Independent professional" }}
+                  {% if candidate.location %} · {{ candidate.location }}{% endif %}
+                </div>
+              </div>
+              <span class="badge badge-gray">{{ candidate.get_source_display }}</span>
+            </div>
+            <div class="flex wrap gap-md mt-4" style="font-size: 13px; color: var(--text-2);">
+              {% if candidate.email %}<a href="mailto:{{ candidate.email }}" style="display: inline-flex; align-items: center; gap: 6px;">✉️ {{ candidate.email }}</a>{% endif %}
+              {% if candidate.phone %}<span>📞 {{ candidate.phone }}</span>{% endif %}
+              {% if candidate.years_experience %}<span>💼 {{ candidate.years_experience|floatformat:0 }} years experience</span>{% endif %}
+            </div>
+            {% if candidate.summary %}
+            <p class="mt-4" style="color: var(--text-2); font-size: 13.5px; line-height: 1.65;">{{ candidate.summary }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Applications -->
+    <div class="card fade-up-1" style="margin-top: 20px;">
+      <div class="card-header between">
+        <div>
+          <h3>Applications</h3>
+          <span class="muted">Jobs this candidate is being considered for</span>
+        </div>
+        <button class="btn btn-soft btn-sm" data-modal-open="applyModal">+ Apply to job</button>
+      </div>
+
+      {% for app in applications %}
+      <div class="card-body" style="padding: 16px 20px; border-bottom: 1px solid var(--border);">
+        <div class="flex between wrap" style="gap: 12px;">
+          <div>
+            <a href="{% url 'job_detail' app.job.pk %}" class="cell-primary" style="font-size: 15px;">{{ app.job.title }}</a>
+            <div class="cell-sub">{{ app.job.department|default:"General" }} · {{ app.job.location|default:"Remote" }} · applied {{ app.created_at|timesince }} ago</div>
+          </div>
+          <div class="flex gap-md">
+            {% if app.score is not None %}
+            <span class="score-pill">
+              <span class="score-ring" style="--p: {{ app.score|floatformat:0 }}; --ring-color: {% if app.score >= 85 %}var(--success){% elif app.score >= 70 %}var(--info){% else %}var(--warning){% endif %};">
+                <span>{{ app.score|floatformat:0 }}</span>
+              </span>
+            </span>
+            {% endif %}
+            <span class="badge badge-{{ app.status }}"><span class="dot"></span>{{ app.get_status_display }}</span>
+          </div>
+        </div>
+
+        {% if app.screening %}
+        <div class="grid-2 mt-4" style="gap: 14px;">
+          <div>
+            <div class="section-title" style="margin: 0 0 8px;">Match breakdown</div>
+            <div class="breakdown-row"><span class="label">Skills</span><div class="progress indigo"><div style="width: {{ app.screening.skill_score|floatformat:0 }}%"></div></div><span class="val">{{ app.screening.skill_score|floatformat:0 }}</span></div>
+            <div class="breakdown-row"><span class="label">Experience</span><div class="progress green"><div style="width: {{ app.screening.experience_score|floatformat:0 }}%"></div></div><span class="val">{{ app.screening.experience_score|floatformat:0 }}</span></div>
+            <div class="breakdown-row"><span class="label">Education</span><div class="progress amber"><div style="width: {{ app.screening.education_score|floatformat:0 }}%"></div></div><span class="val">{{ app.screening.education_score|floatformat:0 }}</span></div>
+          </div>
+          <div>
+            <div class="section-title" style="margin: 0 0 8px;">Screening verdict</div>
+            <div class="flex wrap gap-sm" style="margin-bottom: 8px;">
+              <span class="badge {% if app.screening.verdict == 'strong_match' %}badge-green{% elif app.screening.verdict == 'good_match' %}badge-cyan{% elif app.screening.verdict == 'possible_match' %}badge-amber{% else %}badge-red{% endif %}">{{ app.screening.get_verdict_display }}</span>
+              <span class="badge {% if app.screening.stage == 'ai_enhanced' %}badge-gradient{% else %}badge-gray{% endif %}">
+                {% if app.screening.stage == 'ai_enhanced' %}✦ AI-enhanced{% else %}Rule-based{% endif %}
+              </span>
+            </div>
+            <div class="flex wrap gap-sm">
+              <a href="{% url 'screening_detail' app.screening.pk %}" class="btn btn-ghost btn-sm">Full report</a>
+              {% if app.interviews.all %}
+              <span class="chip">{{ app.interviews.count }} interview{{ app.interviews.count|pluralize }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="mt-4">
+          <form method="post" action="{% url 'screening_rerun' app.pk %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-soft btn-sm">Run screening</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      {% empty %}
+      <div class="card-body">
+        <div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h6v6H4zM14 13h6v6h-6zM4 17c0-2 1.5-4 4-4"/><path d="M14 5h6"/></svg></div>
+          <h4>Not applied to any jobs yet</h4>
+          <p>Attach this candidate to an open position to start screening.</p>
+          <button class="btn btn-primary" data-modal-open="applyModal">Apply to a job</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Interviews -->
+    {% if applications %}
+    <div class="card fade-up-2" style="margin-top: 20px;">
+      <div class="card-header"><div><h3>Interview history</h3><span class="muted">All interviews for this candidate</span></div></div>
+      <div class="card-body">
+        <div class="timeline">
+          {% for app in applications %}
+            {% for interview in app.interviews.all %}
+            <div class="tl-item">
+              <div class="tl-title">{{ interview.get_interview_type_display }} · {{ app.job.title }}</div>
+              <div class="tl-meta">
+                {{ interview.scheduled_at|date:"M d, Y · H:i" }} · {{ interview.duration_minutes }} min
+                {% if interview.interviewer %} · {{ interview.interviewer }}{% endif %}
+                · <span class="badge {% if interview.status == 'completed' %}badge-green{% elif interview.status == 'cancelled' %}badge-red{% else %}badge-blue{% endif %}" style="padding: 1px 8px;">{{ interview.get_status_display }}</span>
+              </div>
+              {% if interview.feedback %}<div class="tl-text">“{{ interview.feedback }}”</div>{% endif %}
+              {% if interview.rating %}<div class="tl-meta" style="margin-top: 3px;">Rating: {% for i in "12345" %}{% if forloop.counter <= interview.rating %}⭐{% endif %}{% endfor %}</div>{% endif %}
+            </div>
+            {% empty %}
+            {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right column -->
+  <div>
+    <!-- Parsed skills -->
+    <div class="card fade-up-1">
+      <div class="card-header between">
+        <div><h3>Skills</h3><span class="muted">Extracted from resumes</span></div>
+        {% if latest_resume %}<span class="badge badge-violet">{{ latest_resume.skills|length }} found</span>{% endif %}
+      </div>
+      <div class="card-body">
+        <div class="skill-cloud">
+          {% for skill in candidate.skills %}
+          <span class="chip chip-soft">{{ skill }}</span>
+          {% empty %}
+          <span class="muted">Upload a resume to extract skills automatically.</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Education -->
+    <div class="card fade-up-1" style="margin-top: 20px;">
+      <div class="card-header"><div><h3>Education</h3></div></div>
+      <div class="card-body">
+        {% if candidate.education %}<p style="color: var(--text-2); font-size: 13.5px; white-space: pre-line;">{{ candidate.education }}</p>
+        {% else %}<span class="muted">No education details recorded.</span>{% endif %}
+      </div>
+    </div>
+
+    <!-- Resume preview -->
+    {% if latest_resume %}
+    <div class="card fade-up-2" style="margin-top: 20px;">
+      <div class="card-header between">
+        <div><h3>Latest resume</h3><span class="muted">{{ latest_resume.file_type|upper }} · {{ latest_resume.parsed.word_count|default:0 }} words</span></div>
+      </div>
+      <div class="card-body" style="padding: 14px;">
+        <details>
+          <summary class="btn btn-ghost btn-sm" style="list-style: none; cursor: pointer;">Preview parsed text</summary>
+          <div class="resume-preview" style="margin-top: 12px;">{{ latest_resume.raw_text|truncatechars:4000 }}</div>
+        </details>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Apply-to-job modal -->
+<div class="modal-overlay" id="applyModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Apply to a job</h3>
+      <button class="icon-btn" data-modal-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <form method="post" action="{% url 'candidate_apply' candidate.pk %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="field">
+          <label for="job-select">Choose a position</label>
+          <select class="select" name="job_id" id="job-select" required>
+            {% for app in applications %}
+            <option value="{{ app.job.pk }}" disabled>✓ {{ app.job.title }} (already applied)</option>
+            {% endfor %}
+            {% for job in job_choices %}
+            <option value="{{ job.pk }}">{{ job.title }} — {{ job.department|default:"General" }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Create application</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

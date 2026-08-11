@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{% if job %}Edit {{ job.title }}{% else %}New job{% endif %} — TalentPulse ATS{% endblock %}
+{% block page_title %}{% if job %}Edit job{% else %}Create a new job{% endif %}{% endblock %}
+{% block page_sub %}{% if job %}Update the requisition details{% else %}Define a role to start screening candidates{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card fade-up">
+    <div class="card-header"><div><h3>Position details</h3></div></div>
+    <div class="card-body">
+      <div class="form-grid">
+        {% for field in form %}
+        {% if field.name in 'required_skills_input nice_to_have_skills_input description responsibilities requirements' %}
+        <div class="field span-2">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+          {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        {% else %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="card-footer end">
+      <a href="{% if job %}{% url 'job_detail' job.pk %}{% else %}{% url 'job_list' %}{% endif %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if job %}Save changes{% else %}Create job{% endif %}</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

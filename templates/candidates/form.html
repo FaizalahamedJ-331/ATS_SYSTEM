@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Add candidate — TalentPulse ATS{% endblock %}
+{% block page_title %}Add a candidate{% endblock %}
+{% block page_sub %}Enter details manually or upload a resume and we'll parse them for you{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  <div class="card fade-up">
+    <div class="card-header"><div><h3>Resume (optional)</h3><span class="muted">Auto-extracts contact info, skills and experience</span></div></div>
+    <div class="card-body">
+      <div class="file-drop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 30px; height: 30px; margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+        <div><span class="file-name">Drop a PDF, DOCX or TXT file here, or click to browse</span></div>
+        <input type="file" name="resume_file" accept=".pdf,.docx,.txt,.md">
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-4 fade-up-1">
+    <div class="card-header"><div><h3>Candidate details</h3></div></div>
+    <div class="card-body">
+      <div class="form-grid">
+        {% for field in form %}
+        {% if field.name == 'summary' or field.name == 'education' %}
+        <div class="field span-2">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+          {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        {% else %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+          {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="card-footer end">
+      <a href="{% url 'candidate_list' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">Add candidate</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

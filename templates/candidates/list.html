@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Candidates — TalentPulse ATS{% endblock %}
+{% block page_title %}Candidates{% endblock %}
+{% block page_sub %}Your talent pool — parsed resumes, skills and screening history{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'candidate_create' %}" class="btn btn-primary">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+  Add candidate
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar fade-up">
+  <form class="search-box" method="get" id="searchForm">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input class="input" type="text" id="tableSearch" placeholder="Search name, email, role…">
+  </form>
+  <select class="select" style="width: auto;" onchange="window.location.href='{% url 'candidate_list' %}' + (this.value ? '?source=' + this.value : '')">
+    <option value="">All sources</option>
+    {% for key, label in source_choices %}
+    <option value="{{ key }}" {% if source == key %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <span class="badge badge-gray">{{ candidates|length }} candidate{{ candidates|length|pluralize }}</span>
+</div>
+
+<div class="card fade-up">
+  <div class="table-wrap">
+    <table class="table" data-searchable>
+      <thead>
+        <tr>
+          <th>Candidate</th><th>Current role</th><th>Experience</th><th>Source</th><th>Skills</th><th>Best score</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for candidate in candidates %}
+        <tr>
+          <td>
+            <div class="flex">
+              <div class="avatar avatar-sm avatar-tone-{{ forloop.counter }}">{{ candidate.initials }}</div>
+              <div>
+                <a href="{% url 'candidate_detail' candidate.pk %}" class="cell-primary">{{ candidate.full_name }}</a>
+                <div class="cell-sub">{{ candidate.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="cell-primary" style="font-weight: 500;">{{ candidate.headline|default:"—" }}</span>
+            {% if candidate.current_company %}<div class="cell-sub">{{ candidate.current_company }}</div>{% endif %}
+          </td>
+          <td>
+            {% if candidate.years_experience %}<span class="badge badge-violet">{{ candidate.years_experience|floatformat:0 }} yrs</span>{% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td><span class="badge badge-gray">{{ candidate.get_source_display }}</span></td>
+          <td>
+            <div class="flex wrap gap-sm" style="max-width: 220px;">
+              {% for skill in candidate.skills|slice:":3" %}<span class="chip">{{ skill }}</span>{% endfor %}
+              {% if candidate.skills|length > 3 %}<span class="chip">+{{ candidate.skills|length|add:"-3" }}</span>{% endif %}
+            </div>
+          </td>
+          <td>
+            {% with best=candidate.applications.all|dictsortreversed:"score"|first %}
+            {% if best and best.score is not None %}
+            <span class="score-pill" style="color: {% if best.score >= 85 %}var(--success){% elif best.score >= 70 %}var(--info){% else %}var(--warning){% endif %};">{{ best.score|floatformat:0 }}<span class="muted" style="font-size: 11px;">/100</span></span>
+            {% else %}<span class="muted">—</span>{% endif %}
+            {% endwith %}
+          </td>
+          <td class="end">
+            <a href="{% url 'candidate_detail' candidate.pk %}" class="btn btn-ghost btn-sm">View profile</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/></svg></div>
+              <h4>No candidates yet</h4>
+              <p>Add a candidate manually or upload a resume and we'll parse it automatically.</p>
+              <a href="{% url 'candidate_create' %}" class="btn btn-primary">Add your first candidate</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+# PythonAnywhere free-tier optimized requirements.
+# SQLite is used (no psycopg) and PythonAnywhere provides its own WSGI
+# hosting (no gunicorn), keeping the install small enough for 512 MB.
+Django>=6.0
+pypdf>=5.0
+python-docx>=1.1
+python-dotenv>=1.0
+requests>=2.32
+whitenoise>=6.7

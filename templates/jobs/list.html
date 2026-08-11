@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Jobs — TalentPulse ATS{% endblock %}
+{% block page_title %}Job openings{% endblock %}
+{% block page_sub %}Manage your requisitions and screen applicants{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'job_create' %}" class="btn btn-primary">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+  New job
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar fade-up">
+  <form class="search-box" method="get">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input class="input" type="text" name="q" value="{{ q }}" placeholder="Search jobs, departments…">
+    {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+  </form>
+  <div class="flex gap-sm">
+    <a href="{% url 'job_list' %}" class="btn btn-ghost btn-sm {% if not status %}btn-soft{% endif %}">All</a>
+    {% for key, label in status_choices %}
+    <a href="{% url 'job_list' %}?status={{ key }}{% if q %}&q={{ q }}{% endif %}" class="btn btn-ghost btn-sm {% if status == key %}btn-soft{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if jobs %}
+<div class="grid-2">
+  {% for job in jobs %}
+  <div class="card card-hover fade-up">
+    <div class="card-header between" style="flex-wrap: wrap;">
+      <div class="flex">
+        <div class="avatar" style="width: 42px; height: 42px; border-radius: 12px; font-size: 14px;">{{ job.title|slice:":2"|upper }}</div>
+        <div>
+          <a href="{% url 'job_detail' job.pk %}" class="cell-primary" style="font-size: 15.5px;">{{ job.title }}</a>
+          <div class="cell-sub">{{ job.department|default:"General" }} · {{ job.location|default:"Remote" }} · {{ job.get_employment_type_display }}</div>
+        </div>
+      </div>
+      <span class="badge {% if job.status == 'open' %}badge-green{% elif job.status == 'closed' %}badge-gray{% else %}badge-amber{% endif %}">
+        <span class="dot"></span>{{ job.get_status_display }}
+      </span>
+    </div>
+    <div class="card-body" style="padding: 14px 20px;">
+      <div class="flex wrap gap-md" style="font-size: 13px; color: var(--text-2);">
+        <span>👤 {{ job.app_count }} applicant{{ job.app_count|pluralize }}</span>
+        {% if job.avg_score is not None %}
+        <span>⭐ Avg score <b style="color: var(--text);">{{ job.avg_score|floatformat:0 }}</b></span>
+        {% endif %}
+        <span>🎯 {{ job.get_experience_level_display }}</span>
+        <span>💰 {{ job.salary_range }}</span>
+      </div>
+      {% if job.required_skills %}
+      <div class="skill-cloud" style="margin-top: 12px;">
+        {% for skill in job.required_skills|slice:":5" %}
+        <span class="chip chip-soft">{{ skill }}</span>
+        {% endfor %}
+        {% if job.required_skills|length > 5 %}<span class="chip">+{{ job.required_skills|length|add:"-5" }} more</span>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <div class="card-footer end">
+      <a href="{% url 'job_detail' job.pk %}" class="btn btn-ghost btn-sm">View &amp; screen</a>
+      <a href="{% url 'job_edit' job.pk %}" class="btn btn-soft btn-sm">Edit</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card fade-up">
+  <div class="empty-state">
+    <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18"/></svg></div>
+    <h4>No jobs found</h4>
+    <p>Create your first job opening to start receiving and screening applications.</p>
+    <a href="{% url 'job_create' %}" class="btn btn-primary">Create a job</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
