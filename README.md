@@ -1,5 +1,7 @@
 # TalentPulse ATS — Advanced Applicant Screening System
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 An enterprise-grade applicant tracking system built with **Python + Django**,
 featuring a **hybrid AI screening engine**: deterministic rule-based scoring
 that always works offline, plus optional LLM-powered deep analysis when an API
@@ -105,3 +107,7 @@ static/        styles.css + app.js (theme, kanban drag-drop, charts)
   `SECURE_HSTS_SECONDS` in `.env`.
 - **Uploads**: resume files are stored under `media/`. On a VPS, point Nginx
   at `MEDIA_ROOT`. On PaaS, use a persistent disk mount or object storage.
+
+## 📄 License
+
+Released under the [MIT License](LICENSE).
