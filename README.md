@@ -12,13 +12,16 @@ key is configured.
 | Area | Capabilities |
 | --- | --- |
 | **Resume parsing** | Upload PDF / DOCX / TXT — auto-extracts contact info, skills (60+ category taxonomy), education and years of experience |
-| **Hybrid AI screening** | Weighted ATS score (skills 45% · keywords 20% · experience 20% · education 15%), verdicts, strengths/concerns. Optional LLM deep-analysis pass adjusts scores with narrative feedback |
-| **Pipeline board** | Drag-and-drop kanban: New → Screening → Interview → Offer → Hired / Rejected (persisted via JSON API) |
-| **Job management** | Requisitions with required/nice-to-have skills, salary bands, seniority levels; one-click screening of all applicants |
-| **Candidate profiles** | Parsed resume view, per-job screening breakdowns, interview history, apply-to-job flow |
+| **Hybrid AI screening** | Weighted ATS score (skills 45% · keywords 20% · experience 20% · education 15%), verdicts, strengths/concerns, human-sounding natural-language insight + next-step recommendation, rule-based interview question suggestions, multi-dimension fit radar. Optional LLM deep-analysis pass adjusts scores with narrative feedback |
+| **Pipeline board** | Drag-and-drop kanban: New → Screening → Interview → Offer → Hired / Rejected (persisted via JSON API, every move logged) |
+| **Job management** | Requisitions with required/nice-to-have skills, salary bands, seniority levels; one-click screening of all applicants, bulk **"Advance top matches"**, per-job **CSV export** with scores |
+| **Candidate profiles** | Parsed resume view, per-job screening breakdowns, interview history, apply-to-job flow, per-application **activity timeline** + recruiter note composer |
+| **Activity feed** | Every stage change, screening, interview, note and application logged with timestamps — surfaced as a live "Recent activity" feed on the dashboard |
 | **Interview scheduling** | Schedule, complete with star-rating + feedback (auto-promotes on 4+), cancel |
-| **Analytics dashboard** | 5 live charts: applications over time, sources, per-job volume, ATS score distribution, pipeline funnel |
-| **Extras** | Light/dark theme, toasts, live table search, mobile-responsive sidebar, Django admin |
+| **Analytics dashboard** | Time-aware greeting, AI hiring insights panel, 5 live charts: applications over time, sources, per-job volume, ATS score distribution, pipeline funnel |
+| **Command palette** | Press `Ctrl+K` / `Cmd+K` (or the Search button) for instant global search across candidates, jobs and pages — keyboard-navigable, debounced, with quick actions |
+| **Pinned candidates** | Star any candidate to float them to the top of the list; one-click `?pinned=1` filter, pin/unpin from list or profile |
+| **Extras** | Light/dark theme, toasts, live table search, mobile-responsive sidebar, candidate CSV export (formula-injection safe), Django admin |
 
 ## 🚀 Quick start
 
@@ -91,6 +94,15 @@ static/        styles.css + app.js (theme, kanban drag-drop, charts)
    chat-completions endpoint which returns structured JSON (verdict,
    score delta, strengths, concerns, summary). The result is merged into the
    stored screening result and flagged `AI-enhanced`.
+
+## ⚡ Performance
+
+- **Query efficiency** — dashboard aggregates are single `GROUP BY` queries (14-day trend, pipeline funnel, verdict counts); activity feed and lists use `select_related` / `prefetch_related` with no N+1.
+- **Scoped chart library** — Chart.js is loaded only on the pages that render charts (dashboard, screening report), deferred so it never blocks first paint.
+- **Non-blocking fonts** — Google Fonts loads via `preload` + `onload`, so text paints immediately.
+- **Instant navigation** — internal links are prefetched on hover / touch (respects `saveData` / 2G connections), and same-origin clicks run through the View Transitions API with a top progress bar for a smooth cross-fade.
+- **Page-load skeletons** — every page shows an animated shimmer skeleton (cards + table rows) for a beat while loading, then fades into the real content with zero layout shift; a failsafe guarantees the content always appears even if a script fails.
+- **Indexes** — `Application.status`, `ScreeningResult.ats_score` and the `-created_at` ordering columns are indexed for the pipeline board, feeds and top-matches queries.
 
 ## 🗄️ Production notes
 

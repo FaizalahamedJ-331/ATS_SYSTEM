@@ -9,4 +9,6 @@ urlpatterns = [
     path("jobs/<int:pk>/edit/", views.job_edit, name="job_edit"),
     path("jobs/<int:pk>/toggle-status/", views.job_toggle_status, name="job_toggle_status"),
     path("jobs/<int:pk>/screen/", views.job_screen, name="job_screen"),
+    path("jobs/<int:pk>/advance/", views.job_advance, name="job_advance"),
+    path("jobs/<int:pk>/export/", views.job_export_csv, name="job_export_csv"),
 ]

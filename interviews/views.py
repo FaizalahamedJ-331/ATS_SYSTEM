@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from candidates.models import Application
+from candidates.models import Application, ApplicationEvent
 from interviews.models import Interview
 
 
@@ -59,6 +59,11 @@ def interview_schedule(request):
         )
         app.status = Application.Status.INTERVIEW
         app.save(update_fields=["status", "updated_at"])
+        app.log_event(
+            ApplicationEvent.Kind.INTERVIEW,
+            f"Interview scheduled ({dict(Interview.Type.choices).get(request.POST.get('interview_type', ''), 'Video call')}, {when.strftime('%b %d at %H:%M')})",
+            request.user,
+        )
         messages.success(request, f"Interview scheduled with {app.candidate.full_name}.")
     return redirect("interview_list")
 
@@ -79,8 +84,18 @@ def interview_complete(request, pk):
         if interview.rating and interview.rating >= 4 and app.status == Application.Status.INTERVIEW:
             app.status = Application.Status.OFFER
             app.save(update_fields=["status", "updated_at"])
+            app.log_event(
+                ApplicationEvent.Kind.STATUS,
+                f"Interview rated {interview.rating}/5 — moved to Offer",
+                request.user,
+            )
             messages.success(request, f"Interview completed. {app.candidate.full_name} moved to Offer.")
         else:
+            app.log_event(
+                ApplicationEvent.Kind.INTERVIEW,
+                f"Interview completed" + (f" (rated {interview.rating}/5)" if interview.rating else ""),
+                request.user,
+            )
             messages.success(request, "Interview feedback saved.")
     return redirect("interview_list")
 
@@ -91,5 +106,8 @@ def interview_cancel(request, pk):
     if request.method == "POST":
         interview.status = Interview.Status.CANCELLED
         interview.save(update_fields=["status", "updated_at"])
+        interview.application.log_event(
+            ApplicationEvent.Kind.INTERVIEW, "Interview cancelled", request.user
+        )
         messages.info(request, "Interview cancelled.")
     return redirect("interview_list")

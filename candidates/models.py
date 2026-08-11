@@ -25,6 +25,7 @@ class Candidate(BaseModel):
     skills = models.JSONField(default=list, blank=True)
     summary = models.TextField(blank=True, default="")
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.OTHER)
+    pinned = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
@@ -83,11 +84,14 @@ class Application(BaseModel):
     resume = models.ForeignKey(
         Resume, on_delete=models.SET_NULL, null=True, blank=True, related_name="applications"
     )
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.NEW, db_index=True
+    )
     notes = models.TextField(blank=True, default="")
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["-created_at"], name="app_created_idx")]
         constraints = [
             models.UniqueConstraint(fields=["job", "candidate"], name="unique_job_candidate")
         ]
@@ -104,3 +108,36 @@ class Application(BaseModel):
     def verdict(self):
         result = getattr(self, "screening", None)
         return result.verdict if result else None
+
+    def log_event(self, kind, text, user=None):
+        """Record an activity or note against this application."""
+        ApplicationEvent.objects.create(
+            application=self, kind=kind, text=text, user=user
+        )
+
+
+class ApplicationEvent(BaseModel):
+    class Kind(models.TextChoices):
+        NOTE = "note", "Note"
+        STATUS = "status", "Stage change"
+        SCREEN = "screen", "Screening"
+        RESUME = "resume", "Resume"
+        INTERVIEW = "interview", "Interview"
+        APPLY = "apply", "Application"
+
+    application = models.ForeignKey(
+        Application, on_delete=models.CASCADE, related_name="events"
+    )
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.NOTE)
+    text = models.TextField(default="")
+    user = models.ForeignKey(
+        "auth.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["-created_at"], name="event_created_idx")]
+        verbose_name = "application event"
+
+    def __str__(self):
+        return f"{self.kind}: {self.text[:60]}"

@@ -4,6 +4,10 @@
 {% block page_sub %}{{ candidate.headline|default:"Candidate" }}{% if candidate.current_company %} · {{ candidate.current_company }}{% endif %}{% endblock %}
 
 {% block topbar_actions %}
+<button class="btn {% if candidate.pinned %}btn-soft{% else %}btn-ghost{% endif %}" data-pin-btn data-candidate-pk="{{ candidate.pk }}" title="{% if candidate.pinned %}Unpin{% else %}Pin to top{% endif %}">
+  <svg viewBox="0 0 24 24" fill="{% if candidate.pinned %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.6-6.2 3.6 1.6-7L2 9.2l7.1-.6z"/></svg>
+  {% if candidate.pinned %}Pinned{% else %}Pin{% endif %}
+</button>
 <button class="btn btn-ghost" data-modal-open="resumeModal">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
   Upload resume
@@ -93,6 +97,12 @@
             </span>
             {% endif %}
             <span class="badge badge-{{ app.status }}"><span class="dot"></span>{{ app.get_status_display }}</span>
+            {% if app.status != 'hired' %}
+            <form method="post" action="{% url 'application_hired' app.pk %}" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-soft btn-sm" title="Mark as hired">🎉 Hired</button>
+            </form>
+            {% endif %}
           </div>
         </div>
 
@@ -109,8 +119,11 @@
             <div class="flex wrap gap-sm" style="margin-bottom: 8px;">
               <span class="badge {% if app.screening.verdict == 'strong_match' %}badge-green{% elif app.screening.verdict == 'good_match' %}badge-cyan{% elif app.screening.verdict == 'possible_match' %}badge-amber{% else %}badge-red{% endif %}">{{ app.screening.get_verdict_display }}</span>
               <span class="badge {% if app.screening.stage == 'ai_enhanced' %}badge-gradient{% else %}badge-gray{% endif %}">
-                {% if app.screening.stage == 'ai_enhanced' %}✦ AI-enhanced{% else %}Rule-based{% endif %}
+                {% if app.screening.stage == 'ai_enhanced' %}✦ AI-enhanced{% else %}Hybrid{% endif %}
               </span>
+              {% if app.screening.recommendation %}
+              <span class="badge badge-reco"><span class="dot"></span>{{ app.screening.recommendation }}</span>
+              {% endif %}
             </div>
             <div class="flex wrap gap-sm">
               <a href="{% url 'screening_detail' app.screening.pk %}" class="btn btn-ghost btn-sm">Full report</a>
@@ -128,6 +141,34 @@
           </form>
         </div>
         {% endif %}
+
+        <!-- Activity & notes -->
+        <details class="app-activity mt-4">
+          <summary>
+            <span>💬 Activity &amp; notes</span>
+            {% if app.events.all %}<span class="badge badge-gray">{{ app.events.all|length }}</span>{% endif %}
+          </summary>
+          <div class="activity-feed" style="margin-top: 12px;">
+            {% for event in app.events.all %}
+            <div class="activity-item">
+              <span class="activity-ic kind-{{ event.kind }}">
+                {% if event.kind == 'note' %}💬{% elif event.kind == 'status' %}↗{% elif event.kind == 'screen' %}✦{% elif event.kind == 'resume' %}📄{% elif event.kind == 'interview' %}🗓{% else %}📥{% endif %}
+              </span>
+              <div style="min-width: 0;">
+                <div class="activity-text">{{ event.text }}</div>
+                <div class="activity-meta"><span class="badge badge-gray" style="padding: 1px 8px; font-size: 10.5px;">{{ event.get_kind_display }}</span> {{ event.created_at|timesince }} ago{% if event.user %} · {{ event.user.get_username }}{% endif %}</div>
+              </div>
+            </div>
+            {% empty %}
+            <p class="muted small" style="padding: 4px 0;">No activity recorded yet.</p>
+            {% endfor %}
+          </div>
+          <form method="post" action="{% url 'application_note' app.pk %}" class="flex" style="margin-top: 12px; gap: 8px;">
+            {% csrf_token %}
+            <input class="input" type="text" name="text" placeholder="Add a note… e.g. Called Tuesday — very responsive" maxlength="1000" required>
+            <button class="btn btn-soft btn-sm" type="submit" style="flex-shrink: 0;">Add note</button>
+          </form>
+        </details>
       </div>
       {% empty %}
       <div class="card-body">

@@ -17,7 +17,7 @@ class ScreeningResult(BaseModel):
     application = models.OneToOneField(
         "candidates.Application", on_delete=models.CASCADE, related_name="screening"
     )
-    ats_score = models.FloatField(default=0)
+    ats_score = models.FloatField(default=0, db_index=True)
     skill_score = models.FloatField(default=0)
     keyword_score = models.FloatField(default=0)
     experience_score = models.FloatField(default=0)
@@ -32,6 +32,10 @@ class ScreeningResult(BaseModel):
     verdict = models.CharField(max_length=20, choices=Verdict.choices, default=Verdict.POSSIBLE)
     stage = models.CharField(max_length=20, choices=Stage.choices, default=Stage.RULE_BASED)
 
+    # --- Smart screening outputs (rule-based, no API key needed) ---
+    insight = models.TextField(blank=True, default="")
+    recommendation = models.CharField(max_length=80, blank=True, default="")
+
     # --- Optional AI analysis ---
     ai_analysis = models.TextField(blank=True, default="")
     ai_verdict = models.CharField(max_length=20, choices=Verdict.choices, blank=True, default="")
@@ -39,6 +43,7 @@ class ScreeningResult(BaseModel):
 
     class Meta:
         ordering = ["-ats_score"]
+        indexes = [models.Index(fields=["-created_at"], name="screen_created_idx")]
 
     def __str__(self):
         return f"Screening for {self.application} — {self.ats_score:.0f}/100"

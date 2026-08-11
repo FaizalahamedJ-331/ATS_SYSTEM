@@ -4,9 +4,11 @@ from django.db import IntegrityError
 from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from candidates.forms import CandidateForm
-from candidates.models import Application, Candidate, Resume
+from candidates.models import Application, ApplicationEvent, Candidate, Resume
+from core.csv_utils import safe_csv_cell
 from core.parsers import extract_text, parse_resume
 from jobs.models import Job
 
@@ -61,6 +63,32 @@ def _merge_resume_into_candidate(candidate, resume):
 
 
 @login_required
+def candidate_export_csv(request):
+    """Export all candidates (with best score) as CSV."""
+    import csv as _csv
+
+    from django.http import HttpResponse
+
+    candidates = (
+        Candidate.objects.prefetch_related("applications__screening")
+        .order_by("last_name", "first_name")
+        .all()
+    )
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="candidates.csv"'
+    writer = _csv.writer(response)
+    writer.writerow(["Name", "Email", "Headline", "Company", "Years exp", "Source", "Best score"])
+    for c in candidates:
+        scores = [a.score for a in c.applications.all() if a.score is not None]
+        best = round(max(scores), 1) if scores else ""
+        writer.writerow([
+            safe_csv_cell(c.full_name), safe_csv_cell(c.email), safe_csv_cell(c.headline),
+            safe_csv_cell(c.current_company), c.years_experience, c.get_source_display(), best,
+        ])
+    return response
+
+
+@login_required
 def candidate_list(request):
     candidates = (
         Candidate.objects.annotate(app_count=Count("applications"))
@@ -69,6 +97,7 @@ def candidate_list(request):
     )
     source = request.GET.get("source", "")
     q = request.GET.get("q", "").strip()
+    pinned_only = request.GET.get("pinned", "") == "1"
 
     if source in dict(Candidate.Source.choices):
         candidates = candidates.filter(source=source)
@@ -79,15 +108,32 @@ def candidate_list(request):
             | Q(email__icontains=q)
             | Q(headline__icontains=q)
         )
+    if pinned_only:
+        candidates = candidates.filter(pinned=True)
+
+    # Pinned candidates always float to the top of the list
+    candidates = candidates.order_by("-pinned", "-created_at")
 
     context = {
         "active_page": "candidates",
         "candidates": candidates,
         "source": source,
         "q": q,
+        "pinned_only": pinned_only,
         "source_choices": Candidate.Source.choices,
     }
     return render(request, "candidates/list.html", context)
+
+
+@login_required
+def candidate_toggle_pin(request, pk):
+    """Pin / unpin a candidate (JSON)."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST only"}, status=405)
+    candidate = get_object_or_404(Candidate, pk=pk)
+    candidate.pinned = not candidate.pinned
+    candidate.save(update_fields=["pinned", "updated_at"])
+    return JsonResponse({"ok": True, "pinned": candidate.pinned})
 
 
 @login_required
@@ -96,7 +142,7 @@ def candidate_detail(request, pk):
     resumes = candidate.resumes.all()
     applications = (
         candidate.applications.select_related("job", "screening", "resume")
-        .prefetch_related("interviews")
+        .prefetch_related("interviews", "events__user")
         .order_by("-created_at")
     )
     latest_resume = resumes.first()
@@ -171,6 +217,12 @@ def candidate_upload_resume(request, pk):
         except ResumeValidationError as exc:
             messages.error(request, str(exc))
             return redirect("candidate_detail", pk=candidate.pk)
+        for app in candidate.applications.select_related("job").all():
+            app.log_event(
+                ApplicationEvent.Kind.RESUME,
+                f"New resume uploaded and parsed for {app.job.title}",
+                request.user,
+            )
         messages.success(request, f"Resume uploaded and parsed for {candidate.full_name}.")
     return redirect("candidate_detail", pk=candidate.pk)
 
@@ -182,12 +234,50 @@ def candidate_apply(request, pk):
     job_id = request.POST.get("job_id")
     if request.method == "POST" and job_id:
         job = get_object_or_404(Job, pk=job_id)
-        _, created = Application.objects.get_or_create(job=job, candidate=candidate)
+        app, created = Application.objects.get_or_create(
+            job=job,
+            candidate=candidate,
+            defaults={"resume": candidate.resumes.first()},
+        )
         if created:
+            app.log_event(ApplicationEvent.Kind.APPLY, f"Applied to {job.title}", request.user)
             messages.success(request, f"{candidate.full_name} applied to “{job.title}”.")
         else:
             messages.info(request, f"{candidate.full_name} already applied to “{job.title}”.")
     return redirect("candidate_detail", pk=candidate.pk)
+
+
+@login_required
+@require_POST
+def application_hired(request, pk):
+    """Mark an application as Hired (POST) — fires the client-side celebration."""
+    app = get_object_or_404(Application.objects.select_related("candidate"), pk=pk)
+    if app.status != Application.Status.HIRED:
+        previous = app.get_status_display()
+        app.status = Application.Status.HIRED
+        app.save(update_fields=["status", "updated_at"])
+        app.log_event(
+            ApplicationEvent.Kind.STATUS,
+            f"Moved from {previous} to Hired",
+            request.user,
+        )
+    # Tagged message: the front-end toast bootstrap turns this into confetti
+    messages.success(request, app.candidate.full_name, extra_tags="hired")
+    return redirect("candidate_detail", pk=app.candidate.pk)
+
+
+@login_required
+@require_POST
+def application_note(request, pk):
+    """Add a human note to an application's activity timeline."""
+    app = get_object_or_404(Application, pk=pk)
+    text = request.POST.get("text", "").strip()
+    if text:
+        app.log_event(ApplicationEvent.Kind.NOTE, text[:1000], request.user)
+        messages.success(request, "Note added.")
+    else:
+        messages.warning(request, "Write something before saving a note.")
+    return redirect("candidate_detail", pk=app.candidate.pk)
 
 
 # ---------------------------------------------------------------------------
@@ -229,12 +319,19 @@ def application_status(request, pk):
     if status not in dict(Application.Status.choices):
         return JsonResponse({"ok": False, "error": "Invalid status"}, status=400)
     app = get_object_or_404(Application, pk=pk)
+    previous = app.get_status_display()
     app.status = status
     app.save(update_fields=["status", "updated_at"])
+    app.log_event(
+        ApplicationEvent.Kind.STATUS,
+        f"Moved from {previous} to {Application.Status(status).label}",
+        request.user,
+    )
     return JsonResponse(
         {
             "ok": True,
             "status": status,
             "status_label": Application.Status(status).label,
+            "hired": app.status == Application.Status.HIRED,
         }
     )

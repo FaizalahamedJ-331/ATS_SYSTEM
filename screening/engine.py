@@ -36,9 +36,61 @@ STOPWORDS = set(
 
 WEIGHTS = {"skill": 0.45, "keyword": 0.20, "experience": 0.20, "education": 0.15}
 
+RECOMMENDATIONS = {
+    ScreeningResult.Verdict.STRONG: "Advance to interview",
+    ScreeningResult.Verdict.GOOD: "Recommend phone screen",
+    ScreeningResult.Verdict.POSSIBLE: "Manual review advised",
+    ScreeningResult.Verdict.WEAK: "Low priority",
+}
+
 
 def _tokens(text):
     return re.findall(r"[a-z][a-z0-9+#.\-]{2,}", (text or "").lower())
+
+
+def _generate_insight(job, candidate, matched_skills, missing_skills, years, required_years,
+                      keyword_coverage, education_score, ats_score, verdict):
+    """Compose a natural-language, rule-based assessment — no API key required."""
+    name = candidate.first_name or candidate.full_name
+    required_total = len(job.required_skills or [])
+    skill_coverage = round(len(matched_skills) / max(1, required_total) * 100)
+
+    if skill_coverage >= 80:
+        skill_clause = f"a strong skills fit — {len(matched_skills)} of {required_total} required skills matched ({skill_coverage}% coverage)"
+    elif skill_coverage >= 50:
+        skill_clause = f"a reasonable skills base ({skill_coverage}% of required skills matched)"
+    elif required_total:
+        skill_clause = f"a partial skills profile — only {len(matched_skills)} of {required_total} required skills found"
+    else:
+        skill_clause = "no explicit required skills defined for the role"
+
+    if years >= required_years:
+        exp_clause = f"meets the {required_years}+ years requirement with {years:g} years"
+    elif years > 0:
+        exp_clause = f"falls short on experience at {years:g} years vs. the {required_years}+ required"
+    else:
+        exp_clause = "no verified professional experience found on the resume"
+
+    if missing_skills:
+        gap_clause = f"Main gaps to probe: {', '.join(missing_skills[:3])}."
+    else:
+        gap_clause = "No critical skill gaps identified."
+
+    # Vary the phrasing so every candidate reads differently (deterministic pick)
+    openers = [
+        f"{name} presents {skill_clause}. {exp_clause}.",
+        f"Looking at {name}'s resume: {skill_clause}. On experience, {exp_clause}.",
+        f"{name}'s profile comes across as {skill_clause}. In terms of experience, {exp_clause}.",
+    ]
+    opening = openers[int(ats_score) % len(openers)]
+    opening += f" Keyword coverage against the job description is {round(keyword_coverage * 100)}%."
+    verdict_map = {
+        ScreeningResult.Verdict.STRONG: "A strong overall match — low screening risk.",
+        ScreeningResult.Verdict.GOOD: "A solid candidate who clears the screening bar.",
+        ScreeningResult.Verdict.POSSIBLE: "Borderline fit — worth a human second look.",
+        ScreeningResult.Verdict.WEAK: "Below the screening threshold for this role.",
+    }
+    return f"{opening} {gap_clause} {verdict_map[verdict]}"
 
 
 def extract_job_keywords(job):
@@ -155,7 +207,22 @@ def rule_based_screening(job, candidate, resume_text):
     if not concerns:
         concerns.append("No major red flags detected in rule-based pass")
 
+    insight = _generate_insight(
+        job=job,
+        candidate=candidate,
+        matched_skills=matched_skills,
+        missing_skills=missing_skills,
+        years=years,
+        required_years=required_years,
+        keyword_coverage=len(matched_keywords) / max(1, len(keywords)) if keywords else 0.0,
+        education_score=education_score,
+        ats_score=ats_score,
+        verdict=verdict,
+    )
+
     return {
+        "insight": insight,
+        "recommendation": RECOMMENDATIONS[verdict],
         "ats_score": ats_score,
         "skill_score": skill_score,
         "keyword_score": keyword_score,
@@ -189,6 +256,8 @@ def _store(application, result):
             "strengths": result["strengths"],
             "concerns": result["concerns"],
             "verdict": result["verdict"],
+            "insight": result.get("insight", ""),
+            "recommendation": result.get("recommendation", ""),
         },
     )
     return obj
@@ -203,7 +272,9 @@ def screen_application(application, use_llm=True):
     """
     job = application.job
     candidate = application.candidate
-    resume_text = application.resume.raw_text if application.resume else ""
+    # Prefer the application's resume; fall back to the candidate's latest one.
+    resume = application.resume or candidate.resumes.first()
+    resume_text = resume.raw_text if resume else ""
 
     result = rule_based_screening(job, candidate, resume_text)
     obj = _store(application, result)
@@ -217,7 +288,10 @@ def screen_application(application, use_llm=True):
 def screen_job(job, use_llm=True):
     """Screen all applications for a job. Returns the list of results."""
     results = []
-    for app in job.applications.select_related("candidate", "resume", "screening").all():
+    apps = job.applications.select_related("candidate", "resume", "screening").prefetch_related(
+        "candidate__resumes"
+    )
+    for app in apps.all():
         results.append(screen_application(app, use_llm=use_llm))
     return results
 

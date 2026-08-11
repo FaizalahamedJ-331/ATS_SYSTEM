@@ -11,6 +11,14 @@
     Run screening
   </button>
 </form>
+<form method="post" action="{% url 'job_advance' job.pk %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-soft">⚡ Advance top matches</button>
+</form>
+<a href="{% url 'job_export_csv' job.pk %}" class="btn btn-ghost">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+  Export CSV
+</a>
 <a href="{% url 'job_edit' job.pk %}" class="btn btn-ghost">Edit job</a>
 {% endblock %}
 
@@ -26,6 +34,17 @@
         </div>
         <span class="badge badge-violet">{{ ranked|length }} applicant{{ ranked|length|pluralize }}</span>
       </div>
+      {% if verdict_counts %}
+      <div class="card-body" style="padding: 12px 20px; border-bottom: 1px solid var(--border);">
+        <div class="flex wrap gap-md" style="font-size: 12.5px;">
+          <span class="muted" style="font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;">Screening verdicts</span>
+          <span class="badge badge-green"><span class="dot"></span>{{ verdict_counts.strong_match }} strong</span>
+          <span class="badge badge-cyan"><span class="dot"></span>{{ verdict_counts.good_match }} good</span>
+          <span class="badge badge-amber"><span class="dot"></span>{{ verdict_counts.possible_match }} possible</span>
+          <span class="badge badge-red"><span class="dot"></span>{{ verdict_counts.weak_match }} weak</span>
+        </div>
+      </div>
+      {% endif %}
       <div class="table-wrap">
         <table class="table">
           <thead>

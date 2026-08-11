@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from candidates.models import Application, Candidate, Resume
+from candidates.models import Application, ApplicationEvent, Candidate, Resume
 
 
 class ResumeInline(admin.TabularInline):
@@ -32,3 +32,10 @@ class ApplicationAdmin(admin.ModelAdmin):
     list_display = ("candidate", "job", "status", "created_at")
     list_filter = ("status", "job")
     search_fields = ("candidate__first_name", "candidate__last_name", "job__title")
+
+
+@admin.register(ApplicationEvent)
+class ApplicationEventAdmin(admin.ModelAdmin):
+    list_display = ("application", "kind", "text", "user", "created_at")
+    list_filter = ("kind",)
+    search_fields = ("text", "application__candidate__first_name", "application__candidate__last_name")

@@ -22,23 +22,32 @@
   <div>
     <!-- Score overview -->
     <div class="card fade-up">
-      <div class="card-body" style="display: flex; align-items: center; gap: 26px; flex-wrap: wrap;">
-        <div style="position: relative; width: 130px; height: 130px;">
-          <div class="score-ring" style="--p: {{ result.ats_score|floatformat:0 }}; --ring-color: {% if result.ats_score >= 85 %}var(--success){% elif result.ats_score >= 70 %}var(--info){% else %}var(--warning){% endif %}; width: 130px; height: 130px; font-size: 34px;">
+      <div class="card-body" style="display: flex; align-items: center; gap: 28px; flex-wrap: wrap;">
+        <div style="position: relative; width: 150px; height: 150px; flex-shrink: 0;">
+          <div class="score-ring score-ring-xl" style="--p: {{ result.ats_score|floatformat:0 }}; --ring-color: {% if result.ats_score >= 85 %}var(--success){% elif result.ats_score >= 70 %}var(--info){% else %}var(--warning){% endif %};">
             <span>{{ result.ats_score|floatformat:0 }}</span>
           </div>
-          <div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 2px 10px; font-size: 11px; font-weight: 600; color: var(--text-3); white-space: nowrap;">out of 100</div>
+          <div style="position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 2px 10px; font-size: 11px; font-weight: 600; color: var(--text-3); white-space: nowrap;">out of 100</div>
         </div>
-        <div style="flex: 1; min-width: 220px;">
+        <div style="flex: 1; min-width: 240px;">
           <div class="flex wrap gap-sm" style="margin-bottom: 10px;">
-            <span class="badge {% if result.verdict == 'strong_match' %}badge-green{% elif result.verdict == 'good_match' %}badge-cyan{% elif result.verdict == 'possible_match' %}badge-amber{% else %}badge-red{% endif %}" style="font-size: 13px; padding: 6px 14px;">{{ result.get_verdict_display }}</span>
-            <span class="badge {% if result.stage == 'ai_enhanced' %}badge-gradient{% else %}badge-gray{% endif %}" style="font-size: 13px; padding: 6px 14px;">
-              {% if result.stage == 'ai_enhanced' %}✦ AI-enhanced screening{% else %}Rule-based screening{% endif %}
+            <span class="badge badge-verdict verdict-{{ result.verdict }}" style="font-size: 13px; padding: 6px 14px;">
+              {% if result.verdict == 'strong_match' %}🟢{% elif result.verdict == 'good_match' %}🔵{% elif result.verdict == 'possible_match' %}🟡{% else %}🔴{% endif %}
+              {{ result.get_verdict_display }}
             </span>
+            <span class="badge {% if result.stage == 'ai_enhanced' %}badge-gradient{% else %}badge-gray{% endif %}" style="font-size: 13px; padding: 6px 14px;">
+              {% if result.stage == 'ai_enhanced' %}✦ AI-enhanced{% else %}Hybrid screening{% endif %}
+            </span>
+            {% if result.recommendation %}
+            <span class="badge badge-reco"><span class="dot"></span>{{ result.recommendation }}</span>
+            {% endif %}
           </div>
-          <p class="muted" style="font-size: 13px;">
-            Hybrid engine weighing skills, keyword coverage, experience fit and education against the job requirements.
-          </p>
+          {% if result.insight %}
+          <div class="insight-callout">
+            <span class="insight-callout-icon">✦</span>
+            <p>{{ result.insight }}</p>
+          </div>
+          {% endif %}
           <div class="flex gap-md mt-4" style="flex-wrap: wrap;">
             <a href="{% url 'candidate_detail' app.candidate.pk %}" class="btn btn-ghost btn-sm">Candidate profile</a>
             <a href="{% url 'job_detail' app.job.pk %}" class="btn btn-ghost btn-sm">Job detail</a>
@@ -47,14 +56,22 @@
       </div>
     </div>
 
-    <!-- Breakdown -->
-    <div class="card fade-up-1" style="margin-top: 20px;">
-      <div class="card-header"><div><h3>Score breakdown</h3><span class="muted">Component performance</span></div></div>
-      <div class="card-body">
-        <div class="breakdown-row"><span class="label">Skills</span><div class="progress indigo"><div style="width: {{ result.skill_score|floatformat:0 }}%"></div></div><span class="val">{{ result.skill_score|floatformat:0 }}</span></div>
-        <div class="breakdown-row"><span class="label">Keywords</span><div class="progress indigo"><div style="width: {{ result.keyword_score|floatformat:0 }}%"></div></div><span class="val">{{ result.keyword_score|floatformat:0 }}</span></div>
-        <div class="breakdown-row"><span class="label">Experience</span><div class="progress green"><div style="width: {{ result.experience_score|floatformat:0 }}%"></div></div><span class="val">{{ result.experience_score|floatformat:0 }}</span></div>
-        <div class="breakdown-row"><span class="label">Education</span><div class="progress amber"><div style="width: {{ result.education_score|floatformat:0 }}%"></div></div><span class="val">{{ result.education_score|floatformat:0 }}</span></div>
+    <!-- Fit radar + breakdown -->
+    <div class="grid-2 fade-up-1" style="margin-top: 20px;">
+      <div class="card">
+        <div class="card-header"><div><h3>Fit profile</h3><span class="muted">Multi-dimension match radar</span></div></div>
+        <div class="card-body" style="height: 250px;">
+          <canvas id="chart-radar"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div><h3>Score breakdown</h3><span class="muted">Component performance</span></div></div>
+        <div class="card-body">
+          <div class="breakdown-row"><span class="label">Skills</span><div class="progress indigo"><div style="width: {{ result.skill_score|floatformat:0 }}%"></div></div><span class="val">{{ result.skill_score|floatformat:0 }}</span></div>
+          <div class="breakdown-row"><span class="label">Keywords</span><div class="progress indigo"><div style="width: {{ result.keyword_score|floatformat:0 }}%"></div></div><span class="val">{{ result.keyword_score|floatformat:0 }}</span></div>
+          <div class="breakdown-row"><span class="label">Experience</span><div class="progress green"><div style="width: {{ result.experience_score|floatformat:0 }}%"></div></div><span class="val">{{ result.experience_score|floatformat:0 }}</span></div>
+          <div class="breakdown-row"><span class="label">Education</span><div class="progress amber"><div style="width: {{ result.education_score|floatformat:0 }}%"></div></div><span class="val">{{ result.education_score|floatformat:0 }}</span></div>
+        </div>
       </div>
     </div>
 
@@ -82,6 +99,25 @@
   </div>
 
   <div>
+    <!-- Interview questions -->
+    {% if interview_questions %}
+    <div class="card fade-up-2" style="margin-bottom: 20px;">
+      <div class="card-header">
+        <div>
+          <h3>💬 What to ask in the interview</h3>
+          <span class="muted">Suggested talking points based on this profile</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <ul class="list-check">
+          {% for q in interview_questions %}
+          <li><span class="ic ic-info">?</span>{{ q }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- AI analysis -->
     <div class="card fade-up-1">
       <div class="card-header between">
@@ -146,4 +182,10 @@
     {% endif %}
   </div>
 </div>
+
+{{ radar_data|json_script:"data-chart-radar" }}
+{% endblock %}
+
+{% block scripts %}
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 {% endblock %}

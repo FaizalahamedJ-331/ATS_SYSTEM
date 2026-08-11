@@ -22,7 +22,15 @@
     <option value="{{ key }}" {% if source == key %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
+  <a href="{% if pinned_only %}{% url 'candidate_list' %}{% else %}{% url 'candidate_list' %}?pinned=1{% endif %}" class="{% if pinned_only %}btn btn-soft btn-sm{% else %}btn btn-ghost btn-sm{% endif %}" data-toggle-pin-filter style="gap: 6px;" title="{% if pinned_only %}Show all candidates{% else %}Show pinned candidates only{% endif %}">
+    <svg viewBox="0 0 24 24" fill="{% if pinned_only %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.6-6.2 3.6 1.6-7L2 9.2l7.1-.6z"/></svg>
+    {% if pinned_only %}Show all{% else %}Pinned{% endif %}
+  </a>
   <span class="badge badge-gray">{{ candidates|length }} candidate{{ candidates|length|pluralize }}</span>
+  <a href="{% url 'candidate_export_csv' %}" class="btn btn-ghost btn-sm">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+    Export CSV
+  </a>
 </div>
 
 <div class="card fade-up">
@@ -35,9 +43,12 @@
       </thead>
       <tbody>
         {% for candidate in candidates %}
-        <tr>
+        <tr class="{% if candidate.pinned %}row-pinned{% endif %}" data-candidate-row="{{ candidate.pk }}">
           <td>
             <div class="flex">
+              <button class="pin-btn {% if candidate.pinned %}active{% endif %}" data-pin-btn data-candidate-pk="{{ candidate.pk }}" title="{% if candidate.pinned %}Unpin{% else %}Pin to top{% endif %}" aria-label="{% if candidate.pinned %}Unpin{% else %}Pin{% endif %} {{ candidate.full_name }}">
+                <svg viewBox="0 0 24 24" fill="{% if candidate.pinned %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.6-6.2 3.6 1.6-7L2 9.2l7.1-.6z"/></svg>
+              </button>
               <div class="avatar avatar-sm avatar-tone-{{ forloop.counter }}">{{ candidate.initials }}</div>
               <div>
                 <a href="{% url 'candidate_detail' candidate.pk %}" class="cell-primary">{{ candidate.full_name }}</a>

@@ -15,45 +15,78 @@
 {% endblock %}
 
 {% block content %}
+<!-- Human greeting -->
+<div class="greeting fade-up">
+  <div>
+    <div class="flex" style="align-items: center; gap: 12px; flex-wrap: wrap;">
+      <h2 style="margin: 0;">{{ greeting }}, {{ user_name }} <span class="wave">👋</span></h2>
+      <span class="live-chip"><span class="live-dot"></span>Live</span>
+    </div>
+    <p class="muted" style="font-size: 13.5px; margin-top: 3px;">{{ today_label }} — here's what's happening in your hiring pipeline.</p>
+  </div>
+</div>
+
 <!-- Stat cards -->
 <div class="stat-grid">
   <div class="stat-card fade-up">
     <div class="stat-icon tone-indigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18"/></svg></div>
     <div class="stat-label">Open positions</div>
-    <div class="stat-value">{{ stats.open_jobs }}</div>
+    <div class="stat-value" data-count="{{ stats.open_jobs }}">{{ stats.open_jobs }}</div>
     <div class="stat-delta">across all departments</div>
   </div>
   <div class="stat-card fade-up-1">
     <div class="stat-icon tone-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/><path d="M16 5.2a3.5 3.5 0 0 1 0 5.6"/></svg></div>
     <div class="stat-label">Candidates</div>
-    <div class="stat-value">{{ stats.total_candidates }}</div>
+    <div class="stat-value" data-count="{{ stats.total_candidates }}">{{ stats.total_candidates }}</div>
     <div class="stat-delta">in your talent pool</div>
   </div>
   <div class="stat-card fade-up-2">
     <div class="stat-icon tone-violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h6v6H4zM14 13h6v6h-6zM4 17c0-2 1.5-4 4-4"/><path d="M14 5h6"/></svg></div>
     <div class="stat-label">Applications</div>
-    <div class="stat-value">{{ stats.total_applications }}</div>
+    <div class="stat-value" data-count="{{ stats.total_applications }}">{{ stats.total_applications }}</div>
     <div class="stat-delta">in the pipeline</div>
   </div>
   <div class="stat-card fade-up-3">
     <div class="stat-icon tone-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.6-6.2 3.6 1.6-7L2 9.2l7.1-.6z"/></svg></div>
     <div class="stat-label">Avg ATS score</div>
-    <div class="stat-value">{{ stats.avg_score }}</div>
+    <div class="stat-value"><span data-count="{{ stats.avg_score }}" data-decimals="1">{{ stats.avg_score }}</span></div>
     <div class="stat-delta">across screened candidates</div>
   </div>
   <div class="stat-card fade-up-1">
     <div class="stat-icon tone-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M9 15l2 2 4-4"/></svg></div>
     <div class="stat-label">Interviews this week</div>
-    <div class="stat-value">{{ stats.interviews_this_week }}</div>
+    <div class="stat-value" data-count="{{ stats.interviews_this_week }}">{{ stats.interviews_this_week }}</div>
     <div class="stat-delta">scheduled &amp; upcoming</div>
   </div>
   <div class="stat-card fade-up-2">
     <div class="stat-icon tone-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg></div>
     <div class="stat-label">Hires</div>
-    <div class="stat-value">{{ stats.hires }}</div>
+    <div class="stat-value" data-count="{{ stats.hires }}">{{ stats.hires }}</div>
     <div class="stat-delta">offers accepted</div>
   </div>
 </div>
+
+<!-- AI insights -->
+{% if ai_insights %}
+<div class="insights-grid fade-up-2">
+  {% for insight in ai_insights %}
+  <div class="insight-card tone-{{ insight.tone }}">
+    <div class="insight-icon">
+      {% if insight.tone == 'violet' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-3.2 3.2-5 7-5s6.3 1.8 7 5"/></svg>
+      {% elif insight.tone == 'indigo' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+      {% elif insight.tone == 'green' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+      {% elif insight.tone == 'amber' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
+      {% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M9 15l2 2 4-4"/></svg>
+      {% endif %}
+    </div>
+    <div>
+      <div class="insight-title">{{ insight.title }}</div>
+      <div class="insight-text">{{ insight.text }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 <!-- Charts row -->
 <div class="grid-2-1" style="margin-bottom: 20px;">
@@ -152,6 +185,33 @@
     </div>
   </div>
 
+  <!-- Recent activity -->
+  <div class="card fade-up-1" style="margin-bottom: 20px;">
+    <div class="card-header">
+      <div>
+        <h3>Recent activity</h3>
+        <span class="muted">Live updates from your team</span>
+      </div>
+    </div>
+    <div class="card-body" style="padding: 10px 20px;">
+      <div class="activity-feed" id="activityFeed" data-activity-url="{% url 'activity_feed' %}">
+      {% for event in recent_events %}
+      <div class="activity-item" data-event-id="{{ event.pk }}">
+        <span class="activity-ic kind-{{ event.kind }}">
+          {% if event.kind == 'note' %}💬{% elif event.kind == 'status' %}↗{% elif event.kind == 'screen' %}✦{% elif event.kind == 'resume' %}📄{% elif event.kind == 'interview' %}🗓{% else %}📥{% endif %}
+        </span>
+        <div style="min-width: 0;">
+          <div class="activity-text">{{ event.text }}</div>
+          <div class="activity-meta">{{ event.application.candidate.full_name }} · {{ event.application.job.title }} · {{ event.created_at|timesince }} ago{% if event.user %} · {{ event.user.get_username }}{% endif %}</div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state" style="padding: 24px 10px;"><p>Activity will appear here as you screen, move and interview candidates.</p></div>
+      {% endfor %}
+      </div>
+    </div>
+  </div>
+
   <!-- Top candidates -->
   <div class="card fade-up-1">
     <div class="card-header">
@@ -199,4 +259,8 @@
 {{ applications_per_job|json_script:"data-chart-applications" }}
 {{ score_distribution|json_script:"data-chart-scores" }}
 {{ pipeline|json_script:"data-chart-pipeline" }}
+{% endblock %}
+
+{% block scripts %}
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 {% endblock %}

@@ -2,9 +2,37 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
+from candidates.models import ApplicationEvent
 from core import llm
 from screening.engine import enhance_with_llm, screen_application
 from screening.models import ScreeningResult
+
+
+def _interview_questions(result, job, candidate):
+    """Rule-based 'what to ask' suggestions — makes screening actionable."""
+    questions = []
+    if result.missing_skills:
+        questions.append(
+            f"Probe experience with {', '.join(result.missing_skills[:3])} — a key requirement for this role."
+        )
+    if result.matched_skills:
+        questions.append(
+            f"Validate depth in their strongest area ({', '.join(result.matched_skills[:2])}) with a practical scenario."
+        )
+    years = candidate.years_experience or 0
+    if years < job.required_years:
+        questions.append(
+            f"They list {years:g} years vs the {job.required_years}+ required — ask how they've taken ownership early in their career."
+        )
+    if not (candidate.education or "").strip():
+        questions.append("Education isn't detailed — clarify their background and any certifications.")
+    if result.keyword_score < 50:
+        questions.append(
+            "Resume wording has limited overlap with the job description — check for transferable skills that keywords missed."
+        )
+    if not questions:
+        questions.append("Strong all-round profile — use the interview to assess culture fit and motivation.")
+    return questions[:4]
 
 
 @login_required
@@ -20,6 +48,18 @@ def screening_detail(request, pk):
         "result": result,
         "app": result.application,
         "resume_text": result.application.resume.raw_text if result.application.resume else "",
+        "radar_data": {
+            "labels": ["Skills", "Keywords", "Experience", "Education"],
+            "data": [
+                round(result.skill_score, 1),
+                round(result.keyword_score, 1),
+                round(result.experience_score, 1),
+                round(result.education_score, 1),
+            ],
+        },
+        "interview_questions": _interview_questions(
+            result, result.application.job, result.application.candidate
+        ),
     }
     return render(request, "screening/detail.html", context)
 
@@ -32,6 +72,11 @@ def screening_rerun(request, pk):
     if request.method == "POST":
         result = screen_application(app, use_llm=True)
         stage = "AI-enhanced" if result.stage == ScreeningResult.Stage.AI_ENHANCED else "rule-based"
+        app.log_event(
+            ApplicationEvent.Kind.SCREEN,
+            f"Screening refreshed — {result.ats_score:.0f}/100 ({result.get_verdict_display()})",
+            request.user,
+        )
         messages.success(request, f"Screening refreshed — score {result.ats_score:.0f}/100 ({stage}).")
         return redirect("screening_detail", pk=result.pk)
     # GET: just show the current report

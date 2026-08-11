@@ -269,34 +269,92 @@ STATUS_POOL = [
 ]
 
 
+ACHIEVEMENT_POOL = [
+    "Led delivery of a flagship initiative from discovery to launch",
+    "Reduced operational costs by 18% through process automation",
+    "Scaled the service to 2M+ monthly users with zero downtime",
+    "Cut p95 latency by 40% by rearchitecting core data paths",
+    "Mentored 4 junior teammates and ran weekly design reviews",
+    "Shipped 20+ features across two major product cycles",
+    "Drove a 23% lift in the team's key north-star metric",
+    "Introduced a testing culture that lifted coverage from 35% to 82%",
+    "Owned vendor selection and negotiation, saving $60k annually",
+    "Coordinated cross-functional delivery across three squads",
+    "Built internal tooling now used by 80+ engineers",
+    "Presented quarterly roadmaps to leadership and stakeholders",
+    "Onboarded 15+ hires and ran the team's hiring loop",
+    "Resolved a long-standing data quality issue that blocked reporting",
+]
+
+NOTE_POOL = [
+    "Strong culture-fit signal from the referral conversation.",
+    "Called Tuesday morning — very responsive and enthusiastic.",
+    "Asked about salary expectations; comfortable with the published range.",
+    "Portfolio shows great attention to detail; requested a second look.",
+    "Noticed a 6-month gap after 2023 — worth a gentle question in screening.",
+    "Recruiter screen went well; recommended for the next stage.",
+]
+
+
 def _resume_text(c):
-    first, last, email, phone, city, headline, company, years, edu, source, skills, summary, body = c
+    first, last, email, phone, city, headline, company, years, edu, source, skills, summary, _ = c
+    # Deterministic per-candidate variety
+    idx = sum(ord(ch) for ch in first) % len(ACHIEVEMENT_POOL)
+    a1 = ACHIEVEMENT_POOL[idx % len(ACHIEVEMENT_POOL)]
+    a2 = ACHIEVEMENT_POOL[(idx + 3) % len(ACHIEVEMENT_POOL)]
+    a3 = ACHIEVEMENT_POOL[(idx + 7) % len(ACHIEVEMENT_POOL)]
+    if idx % 2 == 0:
+        # Skills-first layout
+        return f"""{first} {last}
+{headline}
+{email} · {phone} · {city} · linkedin.com/in/{first.lower()}-{last.lower()}
+
+SUMMARY
+{summary}
+
+SKILLS
+{", ".join(skills)}
+
+EXPERIENCE
+{company} — {headline}
+2021 — Present
+• {a1}
+• {a2}
+• {a3}
+
+{company} — {headline}
+2018 — 2021
+• Owned delivery of key initiatives end-to-end
+• Improved team velocity and code quality
+
+EDUCATION
+{edu}
+"""
+    # Experience-first layout
     return f"""{first} {last}
 {headline}
-{email} | {phone} | {city} | linkedin.com/in/{first.lower()}-{last.lower()}
+{email} · {phone} · {city} · linkedin.com/in/{first.lower()}-{last.lower()}
 
 SUMMARY
 {summary}
 
 EXPERIENCE
 {company} — {headline}
-2021 - Present
-• {summary}
-• Built and shipped impactful features used by thousands of users
-• Collaborated across engineering, design and product teams
+2021 — Present
+• {a3}
+• {a1}
+• Partnered with product, design and engineering stakeholders
 
 {company} — {headline}
-2018 - 2021
-• Owned delivery of key initiatives end-to-end
-• Improved team velocity and code quality
-
-SKILLS
-{", ".join(skills)}
+2018 — 2021
+• {a2}
+• Drove measurable improvements in quality and velocity
 
 EDUCATION
 {edu}
 
-{first} has {years}+ years of professional experience.
+SKILLS
+{", ".join(skills)}
 """
 
 
@@ -387,19 +445,15 @@ class Command(BaseCommand):
         # Spread candidates across jobs so every job has applicants, biased so
         # stronger candidates land on jobs they fit.
         n = len(candidates)
+        steps = (0, 3, 7, 11, 15, 19)  # together cover every candidate at least once
         for i, job in enumerate(jobs):
-            pick = [
-                candidates[i % n],
-                candidates[(i + 3) % n],
-                candidates[(i + 7) % n],
-                candidates[(i + 11) % n],
-            ]
-            for idx, cand in enumerate(pick):
-                status = STATUS_POOL[(i * 4 + idx) % len(STATUS_POOL)]
-                applied_at = timezone.now() - timedelta(days=(i * 3 + idx) % 14, hours=(i + idx) % 24)
+            for k, step in enumerate(steps):
+                cand = candidates[(i + step) % n]
+                status = STATUS_POOL[(i * len(steps) + k) % len(STATUS_POOL)]
+                applied_at = timezone.now() - timedelta(days=(i * 3 + k) % 14, hours=(i + k) % 24)
                 app, created = Application.objects.get_or_create(
                     job=job, candidate=cand,
-                    defaults={"status": status},
+                    defaults={"status": status, "resume": cand.resumes.first()},
                 )
                 if created:
                     Application.objects.filter(pk=app.pk).update(created_at=applied_at)
@@ -407,6 +461,21 @@ class Command(BaseCommand):
         from screening.engine import screen_job
         for job in jobs:
             screen_job(job, use_llm=False)
+
+        # Seed a lived-in activity trail: apply events, stage moves, notes
+        for i, app in enumerate(Application.objects.select_related("candidate", "job").all()):
+            app.log_event(
+                "apply",
+                f"Applied to {app.job.title}",
+            )
+            if app.status != Application.Status.NEW:
+                app.log_event(
+                    "status",
+                    f"Moved from New to {Application.Status(app.status).label} after initial review",
+                )
+            if i % 3 == 0:
+                note = NOTE_POOL[i % len(NOTE_POOL)]
+                app.log_event("note", note)
         self.stdout.write("Screened all seeded applications with the rule-based engine.")
 
     def _interviews(self):
